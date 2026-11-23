@@ -1,5 +1,6 @@
 package com.music.bitchord.ui.player
 
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Size
@@ -1012,6 +1013,13 @@ internal fun CircleGlyph(
     modifier: Modifier = Modifier,
 ) {
     val haptics = rememberHaptics()
+    val glassDisc = LocalPlayerGlassDisc.current
+    if (glassDisc != null) {
+        // Liquid Glass on: the platform's own glass button (Glassé on Android), which presses, follows,
+        // stretches and, for the ⋯, turns into the menu it opens.
+        glassDisc(icon, contentDescription, { haptics.play(haptic); onClick() }, modifier)
+        return
+    }
     val discAlpha by animateFloatAsState(
         targetValue = if (active) 0.34f else CIRCLE_DISC_ALPHA,
         label = "glyphDisc",
@@ -1055,6 +1063,13 @@ internal fun CircleGlyph(
         }
     }
 }
+
+/**
+ * Set by a platform whose Liquid Glass is on: draws the star and ⋯ beside the
+ * credits as that platform's glass buttons (icon, description, click, modifier)
+ * in place of the frosted discs. Null keeps the discs.
+ */
+val LocalPlayerGlassDisc = staticCompositionLocalOf<(@Composable (ImageVector, String, () -> Unit, Modifier) -> Unit)?> { null }
 
 /**
  * The star and ⋯ discs' fill at [alpha]: under the blend, the ink at a few
@@ -1111,6 +1126,11 @@ internal fun GlassDiscPair(
     modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit,
 ) {
+    if (LocalPlayerGlassDisc.current != null) {
+        // Each disc is a glass button of its own: no shared frost behind them.
+        Row(modifier, verticalAlignment = Alignment.CenterVertically, content = content)
+        return
+    }
     val reduceDynamicBlur by PlayerSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val autoMixHold = rememberAutoMixFrostHold()
     Box(modifier) {
