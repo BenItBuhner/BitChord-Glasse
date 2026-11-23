@@ -1,5 +1,9 @@
 package com.music.bitchord.ui.components
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.runtime.LaunchedEffect
+import com.benitbuhner.liquidglass.GlassSprings
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -362,11 +366,23 @@ private fun ArtworkPageBackButton(
         MaterialTheme.colorScheme.onSurface
     }
 
+    // Glassé's press: the glass swells 8% and its rim brightens while held.
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val lift = remember { Animatable(0f) }
+    LaunchedEffect(pressed) {
+        lift.animateTo(if (pressed) 1f else 0f, if (pressed) GlassSprings.press() else GlassSprings.bouncy())
+    }
     IconButton(
         onClick = onClick,
+        interactionSource = interaction,
         modifier = modifier
             .size(TOP_CONTROL_SIZE)
-            .then(artworkPageSurface(shape = shape, hazeState = hazeState)),
+            .graphicsLayer {
+                val s = 1f + 0.08f * lift.value
+                scaleX = s; scaleY = s
+            }
+            .then(artworkPageSurface(shape = shape, hazeState = hazeState, pressed = { lift.value })),
     ) {
         Icon(
             SfIcons.ArrowBack,
@@ -489,10 +505,15 @@ private fun Modifier.artworkActionEdgePadding(): Modifier = layout { measurable,
 private fun artworkPageSurface(
     shape: CornerBasedShape,
     hazeState: HazeState?,
+    pressed: () -> Float = { 0f },
 ): Modifier {
     val container = MaterialTheme.colorScheme.surface
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val useLiquidGlass = LocalLiquidGlassEnabled.current && isGlassSupported()
+
+    // Glassé draws its own rim, edge light and shadow; a clip or a second
+    // hairline over it would cut the shadow off and double the edge.
+    if (useLiquidGlass && !reduceDynamicBlur) return Modifier.liquidGlass(shape, pressed = pressed)
 
     return Modifier
         .clip(shape)

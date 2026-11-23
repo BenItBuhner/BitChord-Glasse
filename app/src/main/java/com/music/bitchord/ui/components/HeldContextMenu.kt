@@ -1,5 +1,9 @@
 package com.music.bitchord.ui.components
 
+import com.benitbuhner.liquidglass.GlassStyle
+import com.benitbuhner.liquidglass.backdropSource
+import com.benitbuhner.liquidglass.liquidGlass
+import com.benitbuhner.liquidglass.rememberBackdrop as rememberGlasseBackdrop
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
@@ -170,6 +174,10 @@ fun <T : Any> HeldContextMenu(
 
     val insets = WindowInsets.safeDrawing
     var overlayOffset by remember { mutableStateOf(Offset.Zero) }
+    // Liquid Glass: the menu under the held item is Glassé glass, the same
+    // material as the popover menus, over the pushed-back page.
+    val glassMenu = !reduceDynamicBlur && LocalLiquidGlassEnabled.current && isGlassSupported()
+    val heldGlass = rememberGlasseBackdrop()
 
     Layout(
         modifier = Modifier
@@ -186,6 +194,9 @@ fun <T : Any> HeldContextMenu(
             Spacer(
                 Modifier
                     .fillMaxSize()
+                    // Recorded for the menu's glass: it refracts the page as
+                    // it is drawn here, blurred and pushed back.
+                    .then(if (glassMenu) Modifier.backdropSource(heldGlass) else Modifier)
                     .then(
                         if (reduceDynamicBlur) {
                             Modifier
@@ -243,7 +254,13 @@ fun <T : Any> HeldContextMenu(
                     .pointerInput(Unit) {}
                     // The same frosted plate the held item sits on, so the
                     // item and its menu read as one thing lifted off the page.
-                    .iosMenuPanel(fillOverride = plate, rimOverride = hairline)
+                    .then(
+                        if (glassMenu) {
+                            Modifier.liquidGlass(heldGlass, HeldMenuGlass.copy(tintAlpha = if (dark) 0.44f else 0.46f))
+                        } else {
+                            Modifier.iosMenuPanel(fillOverride = plate, rimOverride = hairline)
+                        },
+                    )
                     .padding(vertical = 8.dp),
             ) {
                 // Added onto the plate, on a dark one only: see [IosMenuPopover].
@@ -371,3 +388,6 @@ private suspend fun PointerInputScope.swallowAll() {
         }
     }
 }
+
+/** The held-item menu's glass: a menu's bevel and thickness (Glassé's GlassMenu), rounded like the panel. */
+private val HeldMenuGlass = GlassStyle(cornerRadius = 30.dp, bezel = 26.dp, thickness = 36.dp, blur = 4.dp)

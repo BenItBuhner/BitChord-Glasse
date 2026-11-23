@@ -539,8 +539,11 @@ object AppSettings {
      */
     val disableBlendEffects = MutableStateFlow(false)
 
-    /** Real backdrop-sampled glass (blur, lens refraction) on the floating nav bar, Android 12+ only. */
-    val liquidGlass = MutableStateFlow(false)
+    /**
+     * Glassé Liquid Glass (refraction on Android 13+, frost on 12) on the floating
+     * bars, buttons, menus and controls. On by default wherever it can draw.
+     */
+    val liquidGlass = MutableStateFlow(true)
 
     /**
      * Frosts the glass instead of refracting it, for phones the lens shader is too
@@ -1135,7 +1138,7 @@ object AppSettings {
         smartVersionAlignment.value = prefs.getBoolean(KEY_SMART_VERSION_ALIGNMENT, true)
         reduceDynamicBlur.value = prefs.getBoolean(KEY_REDUCE_BLUR, false)
         disableBlendEffects.value = prefs.getBoolean(KEY_DISABLE_BLEND_EFFECTS, false)
-        liquidGlass.value = prefs.getBoolean(KEY_LIQUID_GLASS, false)
+        liquidGlass.value = prefs.getBoolean(KEY_LIQUID_GLASS, true)
         glassPerformance.value = prefs.getBoolean(KEY_GLASS_PERFORMANCE, false)
         progressiveBlur.value = prefs.getBoolean(KEY_PROGRESSIVE_BLUR, false)
         lyricsBlur.value = prefs.getBoolean(KEY_LYRICS_BLUR, true)

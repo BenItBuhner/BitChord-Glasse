@@ -86,16 +86,16 @@ fun AccountChannelDialog(
         Column(
             modifier = Modifier
                 .width(ALERT_WIDTH)
-                .clip(shape)
-                .then(
-                    if (reduceDynamicBlur) {
+                .panelGlass(
+                    shape,
+                    fallback = if (reduceDynamicBlur) {
                         Modifier.background(MaterialTheme.colorScheme.surface)
                     } else {
                         Modifier.hazeEffect(
                             state = hazeState,
                             style = HazeMaterials.regular(MaterialTheme.colorScheme.surface),
                         )
-                    },
+                    }
                 )
                 // Swallows the tap before it reaches the scrim behind, so
                 // touching the card itself never dismisses it.
