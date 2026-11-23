@@ -252,9 +252,9 @@ fun DacVolumeHud(hazeState: HazeState) {
                     .width(width)
                     .fillMaxHeight()
                     .shadow(10.dp, RoundedCornerShape(percent = 50), clip = false)
-                    .clip(RoundedCornerShape(percent = 50))
-                    .then(
-                        if (reduceBlur) {
+                    .panelGlass(
+                        RoundedCornerShape(percent = 50),
+                        fallback = if (reduceBlur) {
                             Modifier.background(Color(0xFF1C1C1E).copy(alpha = 0.82f))
                         } else {
                             // A light frost, as iOS draws it: the page shows

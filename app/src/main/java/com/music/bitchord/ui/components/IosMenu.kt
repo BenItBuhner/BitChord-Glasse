@@ -81,6 +81,16 @@ import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.roundToInt
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.LocalContentColor
+import com.benitbuhner.liquidglass.GlassMenuPopover
+import com.benitbuhner.liquidglass.GlassMenuPopoverState
+import com.benitbuhner.liquidglass.Backdrop as GlasseBackdrop
 
 /**
  * The colours of an iOS-style menu panel: a charcoal or frost slab with its
@@ -433,6 +443,13 @@ fun <T : Any> IosMenuPopover(
     onDismiss: () -> Unit,
     backdrop: Backdrop? = null,
     hazeState: HazeState? = null,
+    /**
+     * What a Liquid Glass menu refracts: a live recording of everything under
+     * it. While glass is on (and neither blur nor motion is reduced) the panel
+     * is Glassé's: it pulls out of the button it was opened from and drains
+     * back into it, the iOS 26 menu morph, instead of the frosted slab.
+     */
+    glass: GlasseBackdrop? = null,
     content: @Composable (T) -> Unit,
 ) {
     var last by remember { mutableStateOf<Pair<T, Rect?>?>(null) }
@@ -452,6 +469,11 @@ fun <T : Any> IosMenuPopover(
         }.getOrDefault(false)
     }
     val reduceMotion = appReduceAnimation || systemAnimationsOff
+
+    if (glass != null && glassMenusOn(reduceMotion)) {
+        GlassMenuPanel(menuItem, menuAnchor, open, onDismiss, glass, onGone = { last = null }, content = content)
+        return
+    }
 
     val progress = remember { Animatable(0f) }
     LaunchedEffect(open) {
@@ -607,6 +629,85 @@ fun <T : Any> IosMenuPopover(
                 // new scale, and uploaded again, frame after frame of the
                 // growth. At one size the masks are made once and kept.
                 compositingStrategy = CompositingStrategy.Offscreen
+            }
+        }
+    }
+}
+
+/**
+ * [IosMenuPopover] as Liquid Glass: Glassé's button-to-menu morph, holding the
+ * same rows. The scrim, the back handling and the gesture fence are the
+ * popover's own; the body is glass refracting [glass] live, so the page keeps
+ * moving under it rather than freezing into a still.
+ */
+/** Whether menus are Glassé morphs right now: glass on, and neither blur nor motion reduced. */
+@Composable
+internal fun glassMenusOn(reduceMotion: Boolean? = null): Boolean {
+    val reduced = reduceMotion ?: run {
+        val context = LocalContext.current
+        val app by AppSettings.reduceAnimation.collectAsStateWithLifecycle()
+        val system = remember(context) {
+            runCatching {
+                Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
+            }.getOrDefault(false)
+        }
+        app || system
+    }
+    val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
+    return !reduced && !reduceDynamicBlur && LocalLiquidGlassEnabled.current && isGlassSupported()
+}
+
+@Composable
+private fun <T : Any> GlassMenuPanel(
+    item: T,
+    anchor: Rect?,
+    open: Boolean,
+    onDismiss: () -> Unit,
+    glass: GlasseBackdrop,
+    onGone: () -> Unit,
+    content: @Composable (T) -> Unit,
+) {
+    PlayerBackHandler(enabled = open, onBack = onDismiss)
+    val state = remember { GlassMenuPopoverState() }
+    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val scrim by animateFloatAsState(if (open) 1f else 0f, tween(if (open) 220 else 260), label = "menuScrim")
+    val closed = !open && !state.visible
+    LaunchedEffect(closed) { if (closed) onGone() }
+    // The anchor comes in window coordinates (see menuAnchor); Glassé wants root ones.
+    var inRoot by remember { mutableStateOf(Offset.Zero) }
+    var inWindow by remember { mutableStateOf(Offset.Zero) }
+    BoxWithConstraints(
+        Modifier
+            .fillMaxSize()
+            .onGloballyPositioned { inRoot = it.positionInRoot(); inWindow = it.positionInWindow() }
+            .containSheetGestures(),
+    ) {
+        val density = LocalDensity.current
+        // No anchor: hang off the bottom trailing corner, where the slab sat.
+        val at = anchor?.translate(inRoot - inWindow) ?: with(density) {
+            val size = 44.dp.toPx()
+            Rect(Offset(constraints.maxWidth - 14.dp.toPx() - size, constraints.maxHeight - 120.dp.toPx()), Size(size, size))
+                .translate(inRoot)
+        }
+        Box(
+            Modifier
+                .fillMaxSize()
+                .graphicsLayer { alpha = scrim }
+                .background(Color.Black.copy(alpha = if (dark) 0.22f else 0.10f)),
+        )
+        GlassMenuPopover(
+            expanded = open,
+            onDismiss = onDismiss,
+            anchor = at,
+            backdrop = glass,
+            state = state,
+            width = IosMenuWidth,
+            contentKey = item,
+        ) {
+            // The frosted panels set this through their Surface; glass has none, so rows that take the
+            // ambient colour would otherwise come out black on the dark material.
+            CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
+                Column(Modifier.padding(vertical = 8.dp)) { content(item) }
             }
         }
     }

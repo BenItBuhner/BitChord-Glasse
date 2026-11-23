@@ -279,6 +279,15 @@ import com.music.bitchord.ui.components.floatingtabbar.rememberFloatingTabBarScr
 import com.music.bitchord.ui.components.FrostedTopBar
 import com.music.bitchord.ui.components.LastfmLoginAlert
 import com.music.bitchord.ui.components.LocalAppBackdrop
+import com.music.bitchord.ui.components.LocalGlasseBackdrop
+import com.music.bitchord.ui.components.LocalScreenGlass
+import com.music.bitchord.ui.components.pageGlassSource
+import com.music.bitchord.ui.components.screenGlassSource
+import com.benitbuhner.liquidglass.GlassScheme
+import com.benitbuhner.liquidglass.GlassTheme
+import com.benitbuhner.liquidglass.LocalGlassTheme
+import com.benitbuhner.liquidglass.rememberBackdrop as rememberGlasseBackdrop
+import androidx.compose.ui.graphics.rememberGraphicsLayer
 import com.music.bitchord.ui.components.LocalLiquidGlassEnabled
 import com.music.bitchord.ui.components.backdrop.backdrops.LayerBackdrop
 import com.music.bitchord.ui.components.backdrop.backdrops.layerBackdrop
@@ -347,6 +356,10 @@ import com.music.bitchord.ui.components.MiniPlayerPull
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInWindow
+import com.benitbuhner.liquidglass.Backdrop as GlasseBackdrop
+import com.music.bitchord.ui.components.glassMenusOn
 import com.music.bitchord.ui.player.LocalPlayerDock
 import com.music.bitchord.ui.player.PlayerDock
 import com.music.bitchord.ui.screens.DetailScreen
@@ -430,6 +443,9 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // Screen-capture mode for Glassé's motion (adb `--ef glasse.fixedStep 0.0333`): each drawn frame advances
+        // a fixed step, so a recording from a slow device or emulator still shows every frame of the springs.
+        intent?.getFloatExtra("glasse.fixedStep", 0f)?.takeIf { it > 0f }?.let { com.benitbuhner.liquidglass.GlassMotion.fixedStep = it }
         // Before the composition, so a cold launch from a widget's artwork has
         // the request already standing by the time BitChordApp first reads it.
         PlayerDeepLink.consume(intent)
@@ -469,11 +485,21 @@ class MainActivity : AppCompatActivity() {
                         drawContent()
                     }
                 }
-                val appBackdrop = rememberLayerBackdrop(onDraw = paintBackdrop)
+                // One recording of the page, read twice: Glassé's glass (the bars,
+                // buttons and menus) and the vendored backdrop library's lens and
+                // stills draw the same layer, so the page is recorded once a frame.
+                val pageLayer = rememberGraphicsLayer()
+                val appBackdrop = rememberLayerBackdrop(pageLayer, onDraw = paintBackdrop)
+                val glasseBackdrop = rememberGlasseBackdrop(pageLayer)
+                // Everything under the menus and alerts: the page, its bars, the mini player.
+                val screenGlass = rememberGlasseBackdrop()
                 CompositionLocalProvider(
                     LocalOverscrollFactory provides iosOverscrollFactory,
                     LocalLiquidGlassEnabled provides liquidGlassEnabled,
                     LocalAppBackdrop provides appBackdrop,
+                    LocalGlasseBackdrop provides glasseBackdrop,
+                    LocalScreenGlass provides screenGlass,
+                    LocalGlassTheme provides GlassTheme(scheme = if (darkTheme) GlassScheme.Dark else GlassScheme.Light),
                 ) {
                 // The window's width, measured rather than asked for.
                 //
@@ -763,6 +789,14 @@ private fun BitChordApp(
      * growth, and the whole page was rendered again for it each time.
      */
     val pageBackdrop = rememberSnapshotBackdrop()
+    /**
+     * The same two again, live, for the Liquid Glass menus: Glassé's glass
+     * refracts a recording of everything under it each frame (a display list,
+     * not a picture), so the page keeps moving under the glass. See
+     * [IosMenuPopover]'s `glass`.
+     */
+    val screenGlass = LocalScreenGlass.current ?: rememberGlasseBackdrop()
+    val playerGlass = rememberGlasseBackdrop()
     /** Holding a row anywhere but the player — the menu without the player's rows. */
     val openSongMenu: (Song) -> Unit = { song ->
         menuFromPlayer = false
@@ -999,6 +1033,8 @@ private fun BitChordApp(
     val detailSongSorts by AppSettings.detailSongSorts.collectAsStateWithLifecycle()
     val songSort = topDetail?.browseId?.let { detailSongSorts[it] } ?: SongSort.DEFAULT
     var songSortMenuOpen by remember { mutableStateOf(false) }
+    /** The sort button, in window coordinates: the glass sort and folder menus pull out of it. */
+    var sortMenuAnchor by remember { mutableStateOf<Rect?>(null) }
     // A device folder's equivalents — its sort and whether it is a grid —
     // kept apart for Downloads and shared by every other folder, as they
     // always were. Up here because both the page and the top bar's menu read
@@ -3003,7 +3039,8 @@ private fun BitChordApp(
         Row(
             Modifier
                 .fillMaxSize()
-                .snapshotBackdropSource(pageBackdrop, floor = MaterialTheme.colorScheme.background),
+                .snapshotBackdropSource(pageBackdrop, floor = MaterialTheme.colorScheme.background)
+                .then(if (glassSamplesBackdrop) Modifier.screenGlassSource(screenGlass, MaterialTheme.colorScheme.background) else Modifier),
         ) {
             Box(Modifier.weight(1f).fillMaxHeight()) {
                 AnimatedContent(
@@ -3061,7 +3098,7 @@ private fun BitChordApp(
                                     // cost that setting exists to remove.
                                     .then(
                                         if (glassSamplesBackdrop) {
-                                            Modifier.layerBackdrop(appBackdrop)
+                                            Modifier.pageGlassSource(appBackdrop)
                                         } else {
                                             Modifier
                                         },
@@ -4238,6 +4275,7 @@ private fun BitChordApp(
                                 // down — in the main hierarchy, where the haze
                                 // can see the content it blurs.
                                 IconButton(
+                                    modifier = Modifier.onGloballyPositioned { sortMenuAnchor = it.boundsInWindow() },
                                     onClick = { if (isLocalDetail) folderMenuOpen = true else songSortMenuOpen = true },
                                 ) {
                                     Icon(
@@ -5035,6 +5073,8 @@ private fun BitChordApp(
                             playerLiveCanvas -> Modifier.layerBackdrop(livePlayerBackdrop)
                             else -> Modifier.snapshotBackdropSource(playerBackdrop)
                         }.then(
+                            if (glassSamplesBackdrop) Modifier.screenGlassSource(playerGlass, Color.Black) else Modifier,
+                        ).then(
                             if (reduceDynamicBlur) Modifier else Modifier.hazeSource(playerMenuHaze),
                         ),
                     ) {
@@ -5047,6 +5087,7 @@ private fun BitChordApp(
                         anchor = songMenuAnchor,
                         onDismiss = { songActions = null },
                         backdrop = if (playerLiveCanvas) livePlayerBackdrop else playerBackdrop,
+                        glass = playerGlass.takeIf { glassSamplesBackdrop },
                     ) { song ->
                         songMenuBody(song)
                     }
@@ -5166,6 +5207,7 @@ private fun BitChordApp(
                 onDismiss = { songActions = null },
                 backdrop = pageBackdrop,
                 hazeState = hazeState,
+                glass = screenGlass.takeIf { glassSamplesBackdrop },
             ) { song ->
                 songMenuBody(song)
             }
@@ -5638,6 +5680,7 @@ private fun BitChordApp(
                 onDismiss = { browseActions = null },
                 backdrop = pageBackdrop,
                 hazeState = hazeState,
+                glass = screenGlass.takeIf { glassSamplesBackdrop },
             ) { target ->
                 browseMenuBody(target)
             }
@@ -5806,9 +5849,13 @@ private fun BitChordApp(
             )
         }
 
-        if (songSortMenuOpen) {
-            BackHandler { songSortMenuOpen = false }
+        val menuGlass = screenGlass.takeIf { glassSamplesBackdrop && glassMenusOn() }
+        if (songSortMenuOpen || menuGlass != null) {
+            BackHandler(enabled = songSortMenuOpen) { songSortMenuOpen = false }
             FrostedSortMenu(
+                open = songSortMenuOpen,
+                anchor = sortMenuAnchor,
+                glass = menuGlass,
                 hazeState = hazeState,
                 selected = songSort,
                 // Only a page whose files carry track tags — a local album —
@@ -5839,11 +5886,14 @@ private fun BitChordApp(
         }
 
         val menuFolder = detail?.browseId?.takeIf { it.isDeviceFolder() }
-        if (folderMenuOpen && menuFolder != null) {
-            BackHandler { folderMenuOpen = false }
+        if (menuFolder != null && (folderMenuOpen || menuGlass != null)) {
+            BackHandler(enabled = folderMenuOpen) { folderMenuOpen = false }
             val downloadsFolder = menuFolder == "local:downloads"
             val viewType = folderViewTypeOf(menuFolder)
             FrostedFolderMenu(
+                open = folderMenuOpen,
+                anchor = sortMenuAnchor,
+                glass = menuGlass,
                 hazeState = hazeState,
                 sort = folderSortOf(menuFolder),
                 viewType = viewType,
@@ -6333,6 +6383,9 @@ private fun LibrarySort.localizedLabel(): String = when (this) {
  */
 @Composable
 private fun FrostedSortMenu(
+    open: Boolean,
+    anchor: Rect?,
+    glass: GlasseBackdrop?,
     hazeState: HazeState,
     selected: SongSort,
     offerTrackNumber: Boolean,
@@ -6340,7 +6393,7 @@ private fun FrostedSortMenu(
     onFlipDateDirection: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    FrostedMenuPanel(hazeState = hazeState, onDismiss = onDismiss) {
+    FrostedMenuPanel(open = open, anchor = anchor, glass = glass, hazeState = hazeState, onDismiss = onDismiss) {
         // Date added is one row, Spotify-style: the arrow on it shows
         // the direction — up for newest first, down for oldest — and
         // tapping flips it, the rotation animating the flip. Up is
@@ -6394,6 +6447,9 @@ private fun FrostedSortMenu(
  */
 @Composable
 private fun FrostedFolderMenu(
+    open: Boolean,
+    anchor: Rect?,
+    glass: GlasseBackdrop?,
     hazeState: HazeState,
     sort: LocalMusicSort,
     viewType: LibraryViewType,
@@ -6401,7 +6457,7 @@ private fun FrostedFolderMenu(
     onToggleViewType: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    FrostedMenuPanel(hazeState = hazeState, onDismiss = onDismiss) {
+    FrostedMenuPanel(open = open, anchor = anchor, glass = glass, hazeState = hazeState, onDismiss = onDismiss) {
         val grid = viewType == LibraryViewType.GRID
         FrostedMenuRow(
             label = stringResource(if (grid) R.string.switch_to_list_view else R.string.switch_to_grid_view),
@@ -6428,10 +6484,21 @@ private fun FrostedFolderMenu(
 @OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 private fun FrostedMenuPanel(
+    open: Boolean,
+    anchor: Rect?,
+    /** Set while menus are Liquid Glass: the panel is then Glassé's morph out of [anchor], the sort button. */
+    glass: GlasseBackdrop?,
     hazeState: HazeState,
     onDismiss: () -> Unit,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    if (glass != null) {
+        IosMenuPopover(item = if (open) Unit else null, anchor = anchor, onDismiss = onDismiss, glass = glass) {
+            Column(content = content)
+        }
+        return
+    }
+    if (!open) return
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val shape = MaterialTheme.shapes.extraLarge
     Box(

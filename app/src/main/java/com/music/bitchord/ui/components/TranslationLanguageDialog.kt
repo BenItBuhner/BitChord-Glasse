@@ -117,16 +117,16 @@ fun TranslationLanguageDialog(
         Column(
             modifier = Modifier
                 .width(ALERT_WIDTH)
-                .clip(shape)
-                .then(
-                    if (reduceDynamicBlur) {
+                .panelGlass(
+                    shape,
+                    fallback = if (reduceDynamicBlur) {
                         Modifier.background(MaterialTheme.colorScheme.surface)
                     } else {
                         Modifier.optimizedHazeEffect(
                             state = hazeState,
                             style = HazeMaterials.regular(MaterialTheme.colorScheme.surface),
                         )
-                    },
+                    }
                 )
                 .clickable(
                     indication = null,

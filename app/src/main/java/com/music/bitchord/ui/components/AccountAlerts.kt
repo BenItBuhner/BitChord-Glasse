@@ -1,5 +1,12 @@
 package com.music.bitchord.ui.components
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
+import com.benitbuhner.liquidglass.GlassStyle
+import com.benitbuhner.liquidglass.liquidGlass
 import com.music.bitchord.R
 
 import androidx.compose.foundation.background
@@ -897,6 +904,18 @@ internal fun AlertScaffold(
 ) {
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val shape = RoundedCornerShape(ALERT_CORNER)
+    // Liquid Glass: the card is Glassé's alert material over everything under
+    // it, and it springs in the way an iOS 26 alert does.
+    val screenGlass = LocalScreenGlass.current
+    val glass = frosted && !reduceDynamicBlur && screenGlass != null &&
+        LocalLiquidGlassEnabled.current && isGlassSupported()
+    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val appear = remember { Animatable(if (glass) 0.86f else 1f) }
+    val presence = remember { Animatable(if (glass) 0f else 1f) }
+    LaunchedEffect(Unit) {
+        launch { appear.animateTo(1f, spring(dampingRatio = 0.585f, stiffness = 420f)) }
+        presence.animateTo(1f, spring(dampingRatio = 1f, stiffness = 600f))
+    }
 
     Box(
         modifier = Modifier
@@ -912,9 +931,28 @@ internal fun AlertScaffold(
         Column(
             modifier = Modifier
                 .width(ALERT_WIDTH)
+                .graphicsLayer {
+                    scaleX = appear.value; scaleY = appear.value
+                    alpha = presence.value.coerceIn(0f, 1f)
+                }
+                .then(
+                    if (glass && screenGlass != null) {
+                        Modifier.liquidGlass(
+                            screenGlass,
+                            GlassStyle(
+                                cornerRadius = ALERT_CORNER, bezel = 22.dp, thickness = 30.dp, blur = 18.dp,
+                                tintAlpha = if (dark) 0.72f else 0.74f,
+                            ),
+                        )
+                    } else {
+                        Modifier
+                    },
+                )
                 .clip(shape)
                 .then(
-                    if (reduceDynamicBlur || !frosted) {
+                    if (glass) {
+                        Modifier
+                    } else if (reduceDynamicBlur || !frosted) {
                         Modifier.background(MaterialTheme.colorScheme.surface)
                     } else {
                         Modifier.optimizedHazeEffect(

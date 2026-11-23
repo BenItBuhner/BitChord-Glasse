@@ -98,16 +98,16 @@ fun AccountProfileSelector(
             modifier = Modifier
                 .padding(top = 56.dp, start = 20.dp, end = 20.dp)
                 .fillMaxWidth()
-                .clip(shape)
-                .then(
-                    if (reduceDynamicBlur) {
+                .panelGlass(
+                    shape,
+                    fallback = if (reduceDynamicBlur) {
                         Modifier.background(MaterialTheme.colorScheme.surface)
                     } else {
                         Modifier.optimizedHazeEffect(
                             state = hazeState,
                             style = style,
                         )
-                    },
+                    }
                 )
                 // The same hairline the mini player and the nav bar wear.
                 .border(

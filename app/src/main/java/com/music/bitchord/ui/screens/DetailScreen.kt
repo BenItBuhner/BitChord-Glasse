@@ -14,7 +14,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
-import com.music.bitchord.ui.components.liquidGlassRim
+import com.music.bitchord.ui.components.glassControl
 import com.music.bitchord.ui.components.continuous
 import com.music.bitchord.ui.components.FadingText
 import com.music.bitchord.ui.components.longPressMenuClickable
@@ -1694,10 +1694,11 @@ private fun ActionPill(
                 if (filled) {
                     Modifier.background(Color.White)
                 } else {
-                    Modifier
-                        .background(Color.White.copy(alpha = LIGHT_FILL_ALPHA), CircleShape)
-                        .liquidGlassRim(CircleShape)
-                        .border(1.dp, Color.White.copy(alpha = TOP_RELEASE_EDGE_ALPHA), CircleShape)
+                    Modifier.glassControl(
+                        CircleShape,
+                        fill = Color.White.copy(alpha = LIGHT_FILL_ALPHA),
+                        edge = Color.White.copy(alpha = TOP_RELEASE_EDGE_ALPHA),
+                    )
                 },
             )
             .clickable {
@@ -1801,11 +1802,13 @@ private fun CircleIconButton(
             .size(size)
             .alpha(if (enabled) 1f else DISABLED_ACTION_ALPHA)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = LIGHT_FILL_ALPHA), CircleShape)
-            // The glass rim the floating bars wear, with Liquid Glass on. Rim
-            // only: over the page's flat tint a blurred fill would look the same.
-            .liquidGlassRim(CircleShape)
-            .border(1.dp, Color.White.copy(alpha = TOP_RELEASE_EDGE_ALPHA), CircleShape)
+            // The floating bars' Glassé glass, with Liquid Glass on: it bends
+            // the artwork's colour behind it; the flat fill and edge off.
+            .glassControl(
+                CircleShape,
+                fill = Color.White.copy(alpha = LIGHT_FILL_ALPHA),
+                edge = Color.White.copy(alpha = TOP_RELEASE_EDGE_ALPHA),
+            )
             .clickable(enabled = enabled) {
                 haptics.play(haptic)
                 onClick()

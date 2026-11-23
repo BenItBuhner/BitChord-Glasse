@@ -114,16 +114,16 @@ fun LyricsSourcesDialog(
             modifier = Modifier
                 .widthIn(min = ALERT_WIDTH, max = 320.dp)
                 .fillMaxWidth(0.88f)
-                .clip(shape)
-                .then(
-                    if (reduceDynamicBlur) {
+                .panelGlass(
+                    shape,
+                    fallback = if (reduceDynamicBlur) {
                         Modifier.background(MaterialTheme.colorScheme.surface)
                     } else {
                         Modifier.optimizedHazeEffect(
                             state = hazeState,
                             style = HazeMaterials.regular(MaterialTheme.colorScheme.surface),
                         )
-                    },
+                    }
                 )
                 // Swallows the tap before it reaches the scrim behind, so
                 // touching the card itself never dismisses it.

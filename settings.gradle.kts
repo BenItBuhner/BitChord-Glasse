@@ -35,6 +35,8 @@ val androidSdk: String? = file("local.properties")
 
 if (androidSdk != null && file(androidSdk).isDirectory) {
     include(":app")
+    // Glassé, the Liquid Glass library the phone app draws its glass with.
+    include(":glasse")
     include(":tv")
     include(":wearos")
 } else {
