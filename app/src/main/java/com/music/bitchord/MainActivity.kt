@@ -1,5 +1,6 @@
 package com.music.bitchord
 
+import com.benitbuhner.liquidglass.GlassHost
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -499,8 +500,16 @@ class MainActivity : AppCompatActivity() {
                     LocalAppBackdrop provides appBackdrop,
                     LocalGlasseBackdrop provides glasseBackdrop,
                     LocalScreenGlass provides screenGlass,
-                    LocalGlassTheme provides GlassTheme(scheme = if (darkTheme) GlassScheme.Dark else GlassScheme.Light),
+                    LocalGlassTheme provides GlassTheme(
+                        scheme = if (darkTheme) GlassScheme.Dark else GlassScheme.Light,
+                        // The Apple Music red of Glassé's Music demo: BitChord's own
+                        // primary is white / black, which a selected tab or a
+                        // prominent alert button can't be told apart by.
+                        accent = Color(0xFFFA2D48),
+                    ),
                 ) {
+                // Glassé's host: the overlay layer its alerts, menus and sheets draw in.
+                GlassHost {
                 // The window's width, measured rather than asked for.
                 //
                 // `Configuration.screenWidthDp` is the wrong question here: in a
@@ -519,6 +528,7 @@ class MainActivity : AppCompatActivity() {
                         windowHeight = maxHeight,
                         appBackdrop = appBackdrop,
                     )
+                }
                 }
                 }
             }

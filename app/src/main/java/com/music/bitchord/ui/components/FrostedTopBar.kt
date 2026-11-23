@@ -1,5 +1,6 @@
 package com.music.bitchord.ui.components
 
+import com.benitbuhner.liquidglass.GlassIconButton
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.runtime.LaunchedEffect
@@ -360,34 +361,29 @@ private fun ArtworkPageBackButton(
     val shape = CircleShape
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val useLiquidGlass = LocalLiquidGlassEnabled.current && isGlassSupported()
-    val contentColor = if (useLiquidGlass && !reduceDynamicBlur) {
-        glassContentColor()
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    }
-
-    // Glassé's press: the glass swells 8% and its rim brightens while held.
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    val lift = remember { Animatable(0f) }
-    LaunchedEffect(pressed) {
-        lift.animateTo(if (pressed) 1f else 0f, if (pressed) GlassSprings.press() else GlassSprings.bouncy())
+    val glasse = LocalGlasseBackdrop.current
+    if (useLiquidGlass && !reduceDynamicBlur && glasse != null) {
+        // Glassé's own glass button: its press swell, rim and lens.
+        GlassIconButton(
+            icon = SfIcons.ArrowBack,
+            contentDescription = stringResource(R.string.back),
+            onClick = onClick,
+            backdrop = glasse,
+            modifier = modifier,
+            size = TOP_CONTROL_SIZE,
+        )
+        return
     }
     IconButton(
         onClick = onClick,
-        interactionSource = interaction,
         modifier = modifier
             .size(TOP_CONTROL_SIZE)
-            .graphicsLayer {
-                val s = 1f + 0.08f * lift.value
-                scaleX = s; scaleY = s
-            }
-            .then(artworkPageSurface(shape = shape, hazeState = hazeState, pressed = { lift.value })),
+            .then(artworkPageSurface(shape = shape, hazeState = hazeState)),
     ) {
         Icon(
             SfIcons.ArrowBack,
             contentDescription = stringResource(R.string.back),
-            tint = contentColor,
+            tint = MaterialTheme.colorScheme.onSurface,
         )
     }
 }

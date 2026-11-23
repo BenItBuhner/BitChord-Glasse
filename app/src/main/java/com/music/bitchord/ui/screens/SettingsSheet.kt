@@ -1,5 +1,6 @@
 package com.music.bitchord.ui.screens
 
+import androidx.compose.ui.graphics.graphicsLayer
 import com.music.bitchord.ui.icons.SfIcons
 import com.music.bitchord.wear.WatchInstaller
 import android.content.Context
@@ -3044,6 +3045,19 @@ internal fun SegmentedControl(
     enabled: Boolean = true,
     disabled: Set<Int> = emptySet(),
 ) {
+    // Glass on: Glassé's segmented control (its thumb turns into a lens while dragged).
+    // It has no per-segment disabling, so a control with dimmed segments stays on the pill.
+    if (disabled.isEmpty() && com.music.bitchord.ui.components.LocalLiquidGlassEnabled.current &&
+        com.music.bitchord.ui.components.isGlassSupported()
+    ) {
+        com.benitbuhner.liquidglass.GlassSegmented(
+            options = options,
+            selected = selectedIndex,
+            onSelect = { if (enabled) onSelect(it) },
+            modifier = modifier.graphicsLayer { alpha = if (enabled) 1f else 0.4f },
+        )
+        return
+    }
     PillSegmentedControl(options, selectedIndex, onSelect, modifier, enabled, disabled)
 }
 
