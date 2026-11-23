@@ -1,9 +1,6 @@
 /*
- * The bar's structure and its inline/expanded behaviour are
- * EchoMusicApp/Echo-Music's AppFloatingNavBar + FloatingMiniPlayer (GPL-3.0),
- * over the FloatingTabBar vendored in [com.music.bitchord.ui.components.floatingtabbar].
- * BitChord's own tabs, song model, transport and haptics are wired through it in
- * place of Echo's Screens routing and PlayerConnection.
+ * The now playing accessory's content is from EchoMusicApp/Echo-Music's
+ * FloatingMiniPlayer (GPL-3.0), with BitChord's song model, transport and haptics.
  */
 @file:OptIn(ExperimentalSharedTransitionApi::class)
 
@@ -57,8 +54,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.bitchord.R
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.settings.AppSettings
-import com.music.bitchord.ui.components.floatingtabbar.FloatingTabBar
-import com.music.bitchord.ui.components.floatingtabbar.FloatingTabBarDefaults
+import com.benitbuhner.liquidglass.GlassTab
+import com.benitbuhner.liquidglass.GlassTabView
+import com.benitbuhner.liquidglass.LocalGlassTheme
 import com.music.bitchord.ui.components.floatingtabbar.FloatingTabBarScrollConnection
 import com.music.bitchord.ui.haptics.Haptic
 import com.music.bitchord.ui.haptics.rememberHaptics
@@ -72,19 +70,17 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.layout.fillMaxSize
 
 /**
- * The liquid glass navigation bar: the iOS 26 shape where the now playing
- * controls and the tabs are one component rather than two stacked bars.
+ * The liquid glass navigation bar: Glassé's [GlassTabView], the iOS 26 tab view
+ * where the now playing controls are the bar's accessory and Search its own circle.
  *
- * Expanded, it is a full width now playing pill sitting over the tab pill, with
- * Search as the pill's last tab. Scrolling down collapses it inline — the tabs
- * fold down to just the selected one, the now playing controls narrow into the
- * gap between it and Search, and the whole thing becomes a single row the width
- * of the screen. Scrolling back up expands it. The fold is driven by
- * [scrollConnection], which the page's scroll has to be dispatched into for any
- * of this to move; see MainActivity's `nestedScroll`.
+ * Expanded, the now playing accessory floats over the tab bar with Search beside
+ * it. Scrolling down minimizes it (Glassé's `minimized`): the bar shrinks to a
+ * circle holding the selected tab and the accessory slides down between it and
+ * Search. Scrolling back up, or tapping the circle, expands it. The scroll comes
+ * from [scrollConnection]; see MainActivity's `nestedScroll`.
  *
- * Every surface here samples the app backdrop through [Modifier.liquidGlass], so
- * this is only ever used where that is supported and switched on — off either,
+ * Glassé draws every surface over the page backdrop, so this is only ever used
+ * where glass is supported and switched on — off either,
  * MainActivity draws [MiniPlayer] and [FloatingBottomBar] instead.
  *
  * [song] null means nothing is playing, and the accessory is simply absent: the
@@ -117,50 +113,41 @@ fun GlassNavBar(
     onActiveTabTap: () -> Unit = {},
     autoMixArtwork: (@Composable (String?, Modifier) -> Unit)? = null,
 ) {
-    // Held for the same reason [tabs] is. The glass factory below closes over
-    // this shape, and a fresh RoundedCornerShape each pass means a fresh factory
-    // lambda, which the tab bar sees as a changed argument and recomposes on.
-    val pillShape = remember { RoundedCornerShape(percent = 50) }
-    val contentColor = glassContentColor()
-    val selectedColor = contentColor
-    val unselectedColor = contentColor.copy(alpha = 0.65f)
     val haptics = rememberHaptics()
-
-    // The tab content lambdas below are captured once per contentKey and held
-    // until it changes, so a click handler that reached back to this call's
-    // `onTabSelected` would go stale the moment anything it closes over moved.
-    // Held through a state that is always current instead, which also keeps the
-    // handler out of the key.
     val currentOnTabSelected by rememberUpdatedState(onTabSelected)
-
-    // Search is the odd one out when collapsed: a circle of its own at the end
-    // of the row. It is the last tab in BitChord's order, which is where the
-    // shape wants it anyway. Expanded, it is folded back into the pill.
-    val standaloneIndex = tabs.lastIndex
-
-    // A factory, not a value — see the note in FloatingTabBar's header. Each of
-    // the three surfaces gets its own glass modifier and so its own shape cache.
-    // The theme's own glass tint, as the liquid top bar has it — no white wash.
-    val glassSurface: @Composable () -> Modifier = { Modifier.liquidGlass(shape = pillShape) }
-
-    FloatingTabBar(
-        selectedTabKey = selectedIndex,
-        scrollConnection = scrollConnection,
+    val backdrop = LocalGlasseBackdrop.current ?: return
+    // Search is the last of BitChord's tabs: Glassé's tab view draws it as the circle of its own at the
+    // trailing end, the rest are the bar's tabs.
+    val searchIndex = tabs.lastIndex
+    val barTabs = remember(tabs) { tabs.dropLast(1).map { GlassTab(it.label, it.icon) } }
+    val searchTab = remember(tabs) { tabs.last().let { GlassTab(it.label, it.icon) } }
+    val minimized = scrollConnection.isInline
+    GlassTabView(
+        backdrop = backdrop,
+        tabs = barTabs,
+        selected = selectedIndex.coerceIn(0, barTabs.lastIndex),
+        onSelect = { index ->
+            if (index == selectedIndex) onActiveTabTap() else haptics.play(Haptic.Select)
+            currentOnTabSelected(index)
+        },
         modifier = modifier
             .windowInsetsPadding(floatingBarInsets)
-            .padding(horizontal = NAV_BAR_GUTTER)
-            .padding(bottom = NAV_BAR_LIFT)
-            .fillMaxWidth(),
-        tabBarContentModifier = glassSurface,
-        inlineAccessory = song?.let { current ->
-            { accessoryModifier, _ ->
+            .padding(bottom = NAV_BAR_LIFT),
+        searchTab = searchTab,
+        searchSelected = selectedIndex == searchIndex,
+        onSearch = {
+            if (selectedIndex == searchIndex) onActiveTabTap() else haptics.play(Haptic.Select)
+            currentOnTabSelected(searchIndex)
+        },
+        accessory = song?.let { current ->
+            {
                 GlassNowPlaying(
                     song = current,
-                    isInline = true,
+                    isInline = minimized,
                     isPlaying = isPlaying,
                     isLoading = isLoading,
                     animationsActive = animationsActive,
-                    contentColor = contentColor,
+                    contentColor = LocalGlassTheme.current.label,
                     onPlayPause = onPlayPause,
                     onNext = onNext,
                     onPrevious = onPrevious,
@@ -169,118 +156,15 @@ fun GlassNavBar(
                     onBlockedControl = onBlockedControl,
                     dock = dock,
                     pull = pull,
-                    modifier = accessoryModifier.then(glassSurface()),
+                    modifier = Modifier.fillMaxWidth(),
                     autoMixArtwork = autoMixArtwork,
                 )
             }
         },
-        expandedAccessory = song?.let { current ->
-            { accessoryModifier, _ ->
-                GlassNowPlaying(
-                    song = current,
-                    isInline = false,
-                    isPlaying = isPlaying,
-                    isLoading = isLoading,
-                    animationsActive = animationsActive,
-                    contentColor = contentColor,
-                    onPlayPause = onPlayPause,
-                    onNext = onNext,
-                    onPrevious = onPrevious,
-                    onExpand = onExpand,
-                    controlsLocked = controlsLocked,
-                    onBlockedControl = onBlockedControl,
-                    dock = dock,
-                    pull = pull,
-                    modifier = accessoryModifier.fillMaxWidth().then(glassSurface()),
-                    autoMixArtwork = autoMixArtwork,
-                )
-            }
-        },
-        // Transparent: the glass surface underneath is the background, and a
-        // colour over it would be the thing you saw instead of the backdrop.
-        colors = FloatingTabBarDefaults.colors(
-            backgroundColor = Color.Transparent,
-            accessoryBackgroundColor = Color.Transparent,
-            indicatorColor = glassIndicatorColor(),
-        ),
-        // Flat, because the glass is not. Every surface here already draws its
-        // own [Shadow.Default] as part of the backdrop pass, and the library's
-        // Modifier.shadow on top of that is a second offscreen layer and a
-        // second shadow render for each of them — three at rest, six mid-fold,
-        // paying twice for a shadow you can only see once.
-        elevations = FloatingTabBarDefaults.elevations(
-            inlineElevation = 0.dp,
-            expandedElevation = 0.dp,
-        ),
-        // Expanded, this is meant to be the plain [FloatingBottomBar] with a
-        // different material — same outer width, same pill inset, same tab
-        // padding, same glyph — so the two bars measure identically and the
-        // toggle changes the surface rather than the layout. The horizontal tab
-        // padding is gone with it: the tabs divide the pill by weight now, the
-        // way the plain bar's do, so a per-tab horizontal padding would only
-        // inset the ripple.
-        sizes = FloatingTabBarDefaults.sizes(
-            tabBarContentPadding = PaddingValues(PILL_INSET),
-            tabExpandedContentPadding = PaddingValues(vertical = TAB_VERTICAL_PADDING),
-            // Collapsed, Apple's row is narrower and more spaced: 48pt circles
-            // 28pt in from the screen's sides, 14pt apart, centred on the line
-            // the expanded bar's middle runs along.
-            inlineComponentSpacing = INLINE_SPACING,
-            inlineBarPadding = PaddingValues(
-                start = INLINE_GUTTER - NAV_BAR_GUTTER,
-                end = INLINE_GUTTER - NAV_BAR_GUTTER,
-                bottom = INLINE_LIFT,
-            ),
-        ),
-        // Held too: this is declared `Any?`, so a fresh list every pass is a
-        // changed argument by identity and defeats skipping on its own.
-        contentKey = remember(selectedIndex, tabs, contentColor) {
-            listOf(selectedIndex, tabs, contentColor)
-        },
-        // Expanded, Search shares the tab pill; collapsed, it is the circle at
-        // the end of the row.
-        mergeStandaloneWhenExpanded = true,
-    ) {
-        tabs.forEachIndexed { index, tab ->
-            val isSelected = index == selectedIndex
-            val tint = if (isSelected) selectedColor else unselectedColor
-            val onClick = {
-                if (isSelected) {
-                    onActiveTabTap()
-                } else {
-                    haptics.play(Haptic.Select)
-                }
-                currentOnTabSelected(index)
-            }
-            val icon = @Composable {
-                Icon(
-                    imageVector = tab.icon,
-                    contentDescription = tab.label,
-                    tint = tint,
-                    modifier = Modifier.size(TAB_ICON_SIZE),
-                )
-            }
-            val title = @Composable {
-                Text(
-                    text = tab.label,
-                    style = tabLabelStyle(),
-                    color = tint,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    // The library's Tab stacks the glyph and the label
-                    // with nothing between them; the plain bar spaces
-                    // them, and this is where that gap goes.
-                    modifier = Modifier.padding(top = TAB_ICON_LABEL_GAP),
-                )
-            }
-            if (index == standaloneIndex) {
-                // Titled for the expanded bar, where it is the pill's last tab.
-                standaloneTab(key = index, icon = icon, onClick = onClick, title = title)
-            } else {
-                tab(key = index, icon = icon, title = title, onClick = onClick)
-            }
-        }
-    }
+        onAccessoryClick = onExpand,
+        minimized = minimized,
+        onExpand = { scrollConnection.expand() },
+    )
 }
 
 /**
@@ -499,16 +383,6 @@ private fun GlassNowPlaying(
     }
 }
 
-/** The collapsed row's margin at either side of the screen, and its items' spacing. */
-private val INLINE_GUTTER = 28.dp
-private val INLINE_SPACING = 14.dp
-
-/**
- * Half the difference between the expanded tab row, 62dp, and the collapsed
- * one, 48 — a 28dp glyph in 10dp of padding — so the one folds onto the
- * other's centre line.
- */
-private val INLINE_LIFT = 7.dp
 
 /**
  * The accessory's type, measured off Apple's, collapsed and expanded alike:

@@ -1,5 +1,7 @@
 package com.music.bitchord.ui.components
 
+import com.benitbuhner.liquidglass.AlertActionStyle
+import com.benitbuhner.liquidglass.GlassAlertAction
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.runtime.LaunchedEffect
@@ -679,6 +681,18 @@ fun ConfirmationAlert(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    if (glasseAlertsOn()) {
+        AppGlassAlert(
+            title = title,
+            message = description,
+            actions = listOf(
+                GlassAlertAction(stringResource(R.string.cancel), AlertActionStyle.Cancel, onDismiss),
+                GlassAlertAction(confirmLabel, AlertActionStyle.Prominent, onConfirm),
+            ),
+            onDismiss = onDismiss,
+        )
+        return
+    }
     AlertScaffold(hazeState = hazeState, onDismiss = onDismiss) {
         Column(
             modifier = Modifier
@@ -740,6 +754,13 @@ fun InfoAlert(
             SideEffect { window?.setDimAmount(0f) }
             InfoAlertFrame(hazeState, title, description, onDismiss, frosted = false)
         }
+    } else if (glasseAlertsOn()) {
+        AppGlassAlert(
+            title = title,
+            message = description,
+            actions = listOf(GlassAlertAction(stringResource(android.R.string.ok), AlertActionStyle.Prominent, onDismiss)),
+            onDismiss = onDismiss,
+        )
     } else {
         InfoAlertFrame(hazeState, title, description, onDismiss, frosted = true)
     }

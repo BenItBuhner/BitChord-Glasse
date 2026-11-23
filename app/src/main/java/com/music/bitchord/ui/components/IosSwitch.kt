@@ -1,14 +1,6 @@
 package com.music.bitchord.ui.components
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import com.benitbuhner.liquidglass.GlassSprings
-import com.benitbuhner.liquidglass.GlassStyle
-import com.benitbuhner.liquidglass.backdropSource
-import com.benitbuhner.liquidglass.liquidGlass
-import com.benitbuhner.liquidglass.rememberBackdrop as rememberGlasseBackdrop
+import com.benitbuhner.liquidglass.GlassSwitch
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -76,6 +68,23 @@ fun IosSwitch(
     enabled: Boolean = true,
     @Suppress("UNUSED_PARAMETER") colors: SwitchColors? = null,
 ) {
+    // Liquid Glass on: Glassé's own switch (the thumb turns into a lens while touched), with the
+    // app's haptics and the disabled look the iOS switch below has. A switch the row toggles
+    // (no onCheckedChange) stays the drawn one, so the row's tap still reaches the row.
+    if (onCheckedChange != null && LocalLiquidGlassEnabled.current && isGlassSupported()) {
+        val haptics = rememberHaptics()
+        var settled by remember { mutableStateOf(false) }
+        LaunchedEffect(checked) {
+            if (settled) haptics.play(if (checked) Haptic.ToggleOn else Haptic.ToggleOff)
+            settled = true
+        }
+        GlassSwitch(
+            checked = checked,
+            onCheckedChange = { if (enabled) onCheckedChange(it) },
+            modifier = modifier.graphicsLayer { alpha = if (enabled) 1f else 0.4f },
+        )
+        return
+    }
     val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
@@ -124,28 +133,11 @@ fun IosSwitch(
                     Modifier
                 },
             )
-            .size(TrackWidth, TrackHeight),
+            .size(TrackWidth, TrackHeight)
+            .clip(CircleShape)
+            .background(track),
         contentAlignment = Alignment.CenterStart,
     ) {
-        // Liquid Glass: while a finger is on it the thumb turns into a clear
-        // lens that swells past the track and magnifies it, as iOS 26's does.
-        // The lens is only drawn while it is lifted, so a page of resting
-        // switches is still plain drawing.
-        val glass = LocalLiquidGlassEnabled.current && isGlassSupported() && onCheckedChange != null && enabled
-        val lens = remember { Animatable(0f) }
-        LaunchedEffect(pressed, glass) {
-            if (!glass) lens.snapTo(0f)
-            else if (pressed) lens.animateTo(1f, GlassSprings.press()) else lens.animateTo(0f, GlassSprings.bouncy())
-        }
-        val lensOn by remember { derivedStateOf { lens.value > 0.01f } }
-        val trackSource = rememberGlasseBackdrop()
-        Box(
-            Modifier
-                .matchParentSize()
-                .then(if (glass) Modifier.backdropSource(trackSource) else Modifier)
-                .clip(CircleShape)
-                .background(track),
-        )
         Box(
             Modifier
                 .graphicsLayer {
@@ -155,33 +147,14 @@ fun IosSwitch(
                     // Grows from the edge it is leaving, so the stretch reads
                     // as reaching toward the other side.
                     transformOrigin = TransformOrigin(if (checked == ltr) 1f else 0f, 0.5f)
-                    val l = lens.value
-                    scaleX = stretch * (1f + 0.45f * l) * (1f + 0.12f * l)
-                    scaleY = 1f + 0.45f * l
+                    scaleX = stretch
                 }
                 .size(ThumbWidth, ThumbHeight)
-                .then(
-                    if (lensOn) {
-                        Modifier.liquidGlass(trackSource, SwitchLens) { lens.value }
-                    } else {
-                        Modifier.shadow(2.dp, CircleShape)
-                    },
-                )
-                .drawBehind {
-                    drawRoundRect(
-                        Color.White.copy(alpha = (1f - lens.value).coerceIn(0f, 1f)),
-                        cornerRadius = CornerRadius(size.height / 2),
-                    )
-                },
+                .shadow(2.dp, CircleShape)
+                .background(Color.White, CircleShape),
         )
     }
 }
-
-/** The thumb's lens: clear, magnifying, with a soft shadow (Glassé's switch thumb). */
-private val SwitchLens = GlassStyle(
-    blur = 0.dp, tintAlpha = 0.04f, magnification = 0.12f,
-    saturation = 1.2f, brightness = 1.06f, adaptive = false, shadow = 0.9f,
-)
 
 private val TrackWidth = 64.dp
 private val TrackHeight = 28.dp

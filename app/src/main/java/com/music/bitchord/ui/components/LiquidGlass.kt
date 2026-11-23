@@ -1,7 +1,9 @@
 /*
- * The glass is Glassé (github.com/BenItBuhner/Glasse, MIT), vendored as the
- * :glasse module: Apple's measured Liquid Glass optics, material and motion for
- * Compose. This file is the integration glue: it maps BitChord's shapes and
+ * The glass is Glassé (github.com/BenItBuhner/Glasse, MIT), used as a package
+ * (com.github.BenItBuhner.Glasse:liquidglass): Apple's measured Liquid Glass
+ * optics, material and motion for Compose. The tab bar, switches, segmented
+ * controls, buttons, menus and alerts are its own components. This file is the
+ * integration glue: it maps BitChord's shapes and
  * settings (Liquid Glass on/off, Reduce dynamic blur, glass performance) onto
  * Glassé surfaces. Kyant0/backdrop (Apache-2.0, vendored at
  * [com.music.bitchord.ui.components.backdrop]) is still what the tab bar's
