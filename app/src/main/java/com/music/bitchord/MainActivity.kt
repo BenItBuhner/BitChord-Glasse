@@ -274,6 +274,7 @@ import com.music.bitchord.ui.components.LongPressOrigin
 import com.music.bitchord.ui.components.MenuAnchor
 import com.music.bitchord.ui.components.menuAnchor
 import com.music.bitchord.ui.components.TopBarAction
+import com.music.bitchord.ui.components.AppSheet
 import com.music.bitchord.ui.components.IosMenuPopover
 import com.music.bitchord.ui.components.SongActionsMenu
 import com.music.bitchord.ui.components.HeldContextMenu
@@ -5184,17 +5185,17 @@ private fun BitChordApp(
         }
 
         // ---- Share the Replay ----
-        if (showReplayShare) {
-            replay.summary?.takeUnless { it.isEmpty }?.let { summary ->
-                ModalBottomSheet(
-                    onDismissRequest = { showReplayShare = false },
-                    // Straight to full height. The sheet is a picture and two
-                    // buttons, and half-open it showed the picture with both
-                    // buttons below the fold — a sheet whose only two controls
-                    // need a drag to reach.
-                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-                    containerColor = MaterialTheme.colorScheme.background,
-                ) {
+        run {
+            AppSheet(
+                item = replay.summary?.takeUnless { it.isEmpty }?.takeIf { showReplayShare },
+                onDismiss = { showReplayShare = false },
+                // Straight to full height. The sheet is a picture and two
+                // buttons, and half-open it showed the picture with both
+                // buttons below the fold — a sheet whose only two controls
+                // need a drag to reach.
+                skipPartiallyExpanded = true,
+                containerColor = MaterialTheme.colorScheme.background,
+            ) { summary ->
                     ReplayShareSheet(
                         summary = summary,
                         holder = account?.name.orEmpty(),
@@ -5202,7 +5203,6 @@ private fun BitChordApp(
                         page = replaySharePage,
                         onDismiss = { showReplayShare = false },
                     )
-                }
             }
         }
 
@@ -5693,13 +5693,12 @@ private fun BitChordApp(
             // Rename is a text field and a keyboard, which have no place on a menu
             // floating over the page: the menu hands it on, and the form comes up
             // here on a sheet of its own.
-            browseActions?.takeIf { browseRenameInSheet }?.let { target ->
-                ModalBottomSheet(
-                    onDismissRequest = { browseActions = null },
-                    containerColor = MaterialTheme.colorScheme.background,
-                ) {
-                    browseMenuBody(target)
-                }
+            AppSheet(
+                item = browseActions?.takeIf { browseRenameInSheet },
+                onDismiss = { browseActions = null },
+                containerColor = MaterialTheme.colorScheme.background,
+            ) { target ->
+                browseMenuBody(target)
             }
             HeldContextMenu(
                 item = browseActions,

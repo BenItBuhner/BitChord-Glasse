@@ -1,5 +1,8 @@
 package com.music.bitchord.ui.screens
 
+import com.music.bitchord.ui.components.AppAlertRole
+import com.music.bitchord.ui.components.AppAlertButton
+import com.music.bitchord.ui.components.AppAlert
 import androidx.compose.ui.graphics.graphicsLayer
 import com.music.bitchord.ui.icons.SfIcons
 import com.music.bitchord.wear.WatchInstaller
@@ -1985,244 +1988,187 @@ fun SettingsScreen(
     }
 
     // Everything in the Cached songs folder goes with it, so say so first.
-    if (confirmClearSongCache) {
-        AlertDialog(
-            onDismissRequest = { confirmClearSongCache = false },
-            title = { Text(stringResource(R.string.clear_song_cache_title)) },
-            text = { Text(stringResource(R.string.clear_song_cache_warning)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmClearSongCache = false
-                    AudioCache.clear {
-                        Toast.makeText(context, context.getString(R.string.song_cache_cleared), Toast.LENGTH_SHORT).show()
-                    }
-                }) {
-                    Text(stringResource(R.string.clear))
+    AppAlert(
+        visible = confirmClearSongCache,
+        onDismiss = { confirmClearSongCache = false },
+        title = stringResource(R.string.clear_song_cache_title),
+        message = stringResource(R.string.clear_song_cache_warning),
+        buttons = listOf(
+            AppAlertButton(stringResource(R.string.cancel), role = AppAlertRole.Cancel),
+            AppAlertButton(stringResource(R.string.clear), {
+                AudioCache.clear {
+                    Toast.makeText(context, context.getString(R.string.song_cache_cleared), Toast.LENGTH_SHORT).show()
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmClearSongCache = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
-        )
-    }
+            }),
+        ),
+    )
 
     // Deleting also turns Automix off: left on, its next analysis pass would
     // simply download the model again.
-    if (confirmDeleteAutomixModel) {
-        AlertDialog(
-            onDismissRequest = { confirmDeleteAutomixModel = false },
-            title = { Text(stringResource(R.string.automix_model_delete_title)) },
-            text = {
-                Text(
-                    stringResource(
-                        R.string.automix_model_delete_warning,
-                        (AutomixModels.totalBytes / 1_000_000).toInt(),
-                    ),
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmDeleteAutomixModel = false
-                    AppSettings.setSmartFadeEnabled(false)
-                    AutomixModels.delete()
-                }) {
-                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmDeleteAutomixModel = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
-        )
-    }
+    AppAlert(
+        visible = confirmDeleteAutomixModel,
+        onDismiss = { confirmDeleteAutomixModel = false },
+        title = stringResource(R.string.automix_model_delete_title),
+        message = stringResource(R.string.automix_model_delete_warning, (AutomixModels.totalBytes / 1_000_000).toInt()),
+        buttons = listOf(
+            AppAlertButton(stringResource(R.string.cancel), role = AppAlertRole.Cancel),
+            AppAlertButton(stringResource(R.string.delete), {
+                AppSettings.setSmartFadeEnabled(false)
+                AutomixModels.delete()
+            }, role = AppAlertRole.Destructive),
+        ),
+    )
 
     // Asked before the picker opens rather than after a file is chosen: the
     // thing being confirmed is that this device's own history is about to be
     // thrown away, and that is true whichever file gets picked.
-    if (confirmImport) {
-        AlertDialog(
-            onDismissRequest = { confirmImport = false },
-            title = { Text(stringResource(R.string.import_backup_title)) },
-            text = {
-                Text(stringResource(R.string.import_backup_warning))
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmImport = false
-                    importPicker.launch(arrayOf("application/json", "text/plain", "*/*"))
-                }) {
-                    Text(stringResource(R.string.choose_file))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmImport = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
-        )
-    }
+    AppAlert(
+        visible = confirmImport,
+        onDismiss = { confirmImport = false },
+        title = stringResource(R.string.import_backup_title),
+        message = stringResource(R.string.import_backup_warning),
+        buttons = listOf(
+            AppAlertButton(stringResource(R.string.cancel), role = AppAlertRole.Cancel),
+            AppAlertButton(stringResource(R.string.choose_file), {
+                importPicker.launch(arrayOf("application/json", "text/plain", "*/*"))
+            }),
+        ),
+    )
 
-    if (showPerformanceWarning) {
-        AlertDialog(
-            onDismissRequest = { showPerformanceWarning = false },
-            title = { Text(stringResource(R.string.high_performance_before_enabling)) },
-            text = { Text(stringResource(R.string.high_performance_battery_warning)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showPerformanceWarning = false
-                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                            data = Uri.fromParts("package", context.packageName, null)
+    AppAlert(
+        visible = showPerformanceWarning,
+        onDismiss = { showPerformanceWarning = false },
+        title = stringResource(R.string.high_performance_before_enabling),
+        message = stringResource(R.string.high_performance_battery_warning),
+        buttons = listOf(
+            AppAlertButton(stringResource(R.string.cancel), role = AppAlertRole.Cancel),
+            AppAlertButton(stringResource(R.string.open_battery_settings), {
+                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.fromParts("package", context.packageName, null)
+                }
+                val settingsIntent = intent.takeIf {
+                    it.resolveActivity(context.packageManager) != null
+                } ?: Intent(Settings.ACTION_SETTINGS)
+                batterySettingsLauncher.launch(settingsIntent)
+            }),
+        ),
+    )
+
+    AppAlert(
+        visible = showPerformanceConfirmation,
+        onDismiss = { showPerformanceConfirmation = false },
+        title = stringResource(R.string.enable_high_performance_title),
+        message = stringResource(R.string.enable_high_performance_confirmation),
+        buttons = listOf(
+            AppAlertButton(stringResource(R.string.not_yet), role = AppAlertRole.Cancel),
+            AppAlertButton(stringResource(R.string.enable), { AppSettings.setHighPerformanceMode(true) }),
+        ),
+    )
+
+    var tokenInput by remember(showListenBrainzTokenDialog) { mutableStateOf(listenBrainzToken) }
+    AppAlert(
+        visible = showListenBrainzTokenDialog,
+        onDismiss = { showListenBrainzTokenDialog = false },
+        title = stringResource(R.string.listenbrainz_token),
+        buttons = listOf(
+            AppAlertButton(stringResource(R.string.cancel), role = AppAlertRole.Cancel),
+            AppAlertButton(stringResource(R.string.save), { AppSettings.setListenBrainzToken(tokenInput.trim()) }),
+        ),
+        glassContent = {
+            com.benitbuhner.liquidglass.GlassAlertTextField(tokenInput, { tokenInput = it }, stringResource(R.string.api_token))
+        },
+        materialText = {
+            OutlinedTextField(
+                value = tokenInput,
+                onValueChange = { tokenInput = it },
+                label = { Text(stringResource(R.string.api_token)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+    )
+
+    var usernameInput by remember(showLastfmLoginDialog) { mutableStateOf("") }
+    var passwordInput by remember(showLastfmLoginDialog) { mutableStateOf("") }
+    var lastfmError by remember(showLastfmLoginDialog) { mutableStateOf<String?>(null) }
+    var lastfmLoading by remember(showLastfmLoginDialog) { mutableStateOf(false) }
+    val lastfmError0 = lastfmError
+    AppAlert(
+        visible = showLastfmLoginDialog,
+        onDismiss = { if (!lastfmLoading) showLastfmLoginDialog = false },
+        title = stringResource(R.string.lastfm_login),
+        buttons = listOf(
+            AppAlertButton(stringResource(R.string.cancel), role = AppAlertRole.Cancel, enabled = !lastfmLoading),
+            AppAlertButton(
+                stringResource(if (lastfmLoading) R.string.signing_in else R.string.sign_in),
+                {
+                    lastfmLoading = true
+                    lastfmError = null
+                    scrobbleScope.launch {
+                        try {
+                            // Use the credentials supplied for this build.
+                            LastFM.initialize(
+                                apiKey = AppSettings.lastfmApiKey.value,
+                                secret = AppSettings.lastfmSecret.value,
+                            )
+                            LastFM.getMobileSession(usernameInput.trim(), passwordInput)
+                                .onSuccess { auth ->
+                                    AppSettings.setLastfmSessionKey(auth.session.key)
+                                    AppSettings.setLastfmUsername(auth.session.name)
+                                    AppSettings.setLastfmEnabled(true)
+                                    showLastfmLoginDialog = false
+                                }
+                                .onFailure { e ->
+                                    lastfmError = e.message ?: context.getString(R.string.login_failed)
+                                }
+                        } catch (e: Exception) {
+                            lastfmError = e.message ?: context.getString(R.string.login_failed)
+                        } finally {
+                            lastfmLoading = false
                         }
-                        val settingsIntent = intent.takeIf {
-                            it.resolveActivity(context.packageManager) != null
-                        } ?: Intent(Settings.ACTION_SETTINGS)
-                        batterySettingsLauncher.launch(settingsIntent)
-                    },
-                ) {
-                    Text(stringResource(R.string.open_battery_settings))
+                    }
+                },
+                enabled = !lastfmLoading && usernameInput.isNotBlank() && passwordInput.isNotBlank(),
+                dismisses = false,
+            ),
+        ),
+        glassContent = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (lastfmError0 != null) {
+                    Text(lastfmError0, color = Color(0xFFFF453A), style = MaterialTheme.typography.bodySmall)
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { showPerformanceWarning = false }) {
-                    Text(stringResource(R.string.cancel))
+                com.benitbuhner.liquidglass.GlassAlertTextField(usernameInput, { usernameInput = it }, stringResource(R.string.username))
+                com.benitbuhner.liquidglass.GlassAlertTextField(passwordInput, { passwordInput = it }, stringResource(R.string.password), secure = true)
+            }
+        },
+        materialText = {
+            Column {
+                if (lastfmError0 != null) {
+                    Text(
+                        text = lastfmError0,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
                 }
-            },
-        )
-    }
-
-    if (showPerformanceConfirmation) {
-        AlertDialog(
-            onDismissRequest = { showPerformanceConfirmation = false },
-            title = { Text(stringResource(R.string.enable_high_performance_title)) },
-            text = { Text(stringResource(R.string.enable_high_performance_confirmation)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showPerformanceConfirmation = false
-                        AppSettings.setHighPerformanceMode(true)
-                    },
-                ) {
-                    Text(stringResource(R.string.enable))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showPerformanceConfirmation = false }) {
-                    Text(stringResource(R.string.not_yet))
-                }
-            },
-        )
-    }
-
-    if (showListenBrainzTokenDialog) {
-        var tokenInput by remember { mutableStateOf(listenBrainzToken) }
-        AlertDialog(
-            onDismissRequest = { showListenBrainzTokenDialog = false },
-            title = { Text(stringResource(R.string.listenbrainz_token)) },
-            text = {
                 OutlinedTextField(
-                    value = tokenInput,
-                    onValueChange = { tokenInput = it },
-                    label = { Text(stringResource(R.string.api_token)) },
+                    value = usernameInput,
+                    onValueChange = { usernameInput = it },
+                    label = { Text(stringResource(R.string.username)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    AppSettings.setListenBrainzToken(tokenInput.trim())
-                    showListenBrainzTokenDialog = false
-                }) {
-                    Text(stringResource(R.string.save))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showListenBrainzTokenDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
-        )
-    }
-
-    if (showLastfmLoginDialog) {
-        var usernameInput by remember { mutableStateOf("") }
-        var passwordInput by remember { mutableStateOf("") }
-        var lastfmError by remember { mutableStateOf<String?>(null) }
-        var lastfmLoading by remember { mutableStateOf(false) }
-        AlertDialog(
-            onDismissRequest = { if (!lastfmLoading) showLastfmLoginDialog = false },
-            title = { Text(stringResource(R.string.lastfm_login)) },
-            text = {
-                Column {
-                    if (lastfmError != null) {
-                        Text(
-                            text = lastfmError!!,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(bottom = 8.dp),
-                        )
-                    }
-                    OutlinedTextField(
-                        value = usernameInput,
-                        onValueChange = { usernameInput = it },
-                        label = { Text(stringResource(R.string.username)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = passwordInput,
-                        onValueChange = { passwordInput = it },
-                        label = { Text(stringResource(R.string.password)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        lastfmLoading = true
-                        lastfmError = null
-                        scrobbleScope.launch {
-                            try {
-                                // Use the credentials supplied for this build.
-                                LastFM.initialize(
-                                    apiKey = AppSettings.lastfmApiKey.value,
-                                    secret = AppSettings.lastfmSecret.value,
-                                )
-                                LastFM.getMobileSession(usernameInput.trim(), passwordInput)
-                                    .onSuccess { auth ->
-                                        AppSettings.setLastfmSessionKey(auth.session.key)
-                                        AppSettings.setLastfmUsername(auth.session.name)
-                                        AppSettings.setLastfmEnabled(true)
-                                        showLastfmLoginDialog = false
-                                    }
-                                    .onFailure { e ->
-                                        lastfmError = e.message ?: context.getString(R.string.login_failed)
-                                    }
-                            } catch (e: Exception) {
-                                lastfmError = e.message ?: context.getString(R.string.login_failed)
-                            } finally {
-                                lastfmLoading = false
-                            }
-                        }
-                    },
-                    enabled = !lastfmLoading && usernameInput.isNotBlank() && passwordInput.isNotBlank(),
-                ) {
-                    Text(stringResource(if (lastfmLoading) R.string.signing_in else R.string.sign_in))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showLastfmLoginDialog = false }, enabled = !lastfmLoading) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
-        )
-    }
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = passwordInput,
+                    onValueChange = { passwordInput = it },
+                    label = { Text(stringResource(R.string.password)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+    )
 
 }
 
@@ -2535,6 +2481,19 @@ private fun bitPerfectSubtitle(mode: BitPerfectMode, status: BitPerfectOutput.St
 // ---- Building blocks --------------------------------------------------------
 
 internal val GroupShape = RoundedCornerShape(14.dp)
+
+/** Whether Settings draws as Glassé's grouped list: Liquid Glass on and supported (the original look otherwise). */
+@Composable
+internal fun glassSettings(): Boolean =
+    com.music.bitchord.ui.components.LocalLiquidGlassEnabled.current && com.music.bitchord.ui.components.isGlassSupported()
+
+/** iOS Settings' icon tile colours, one per row, kept stable by its title. */
+private val TileColors = listOf(
+    Color(0xFF0A84FF), Color(0xFF30D158), Color(0xFFFF9F0A), Color(0xFFFF453A), Color(0xFFBF5AF2),
+    Color(0xFF5E5CE6), Color(0xFFFF375F), Color(0xFF64D2FF), Color(0xFF8E8E93),
+)
+
+internal fun settingsTileColor(title: String): Color = TileColors[Math.floorMod(title.hashCode(), TileColors.size)]
 internal val GROUP_INSET = 16.dp
 internal val ROW_INSET = 16.dp
 internal val ICON_SIZE = 22.dp
@@ -2657,6 +2616,11 @@ private inline fun SearchableSettingsGroup(
  */
 @Composable
 internal fun SettingsPageTitle(text: String) {
+    if (glassSettings()) {
+        // iOS's large title, Glassé's: 34 sp bold over the grouped list.
+        com.benitbuhner.liquidglass.LargeTitle(text, Modifier.padding(start = 20.dp, end = 20.dp, top = 8.dp))
+        return
+    }
     Text(
         text = text,
         style = MaterialTheme.typography.displayLarge,
@@ -2677,6 +2641,18 @@ internal fun SettingsGroup(
     topSpacing: Dp = 26.dp,
     content: @Composable () -> Unit,
 ) {
+    if (glassSettings()) {
+        // Liquid Glass: Glassé's inset grouped section (iOS 26 Settings, the demo's): sentence-case
+        // header, a rounder card in the system grouped fill, the footer under it.
+        if (header == null) Spacer(Modifier.height((topSpacing - 4.dp).coerceAtLeast(0.dp))) else Spacer(Modifier.height(14.dp))
+        com.benitbuhner.liquidglass.ListSection(
+            Modifier.padding(horizontal = GROUP_INSET),
+            header = header,
+            footer = footer,
+            radius = 26.dp,
+        ) { content() }
+        return
+    }
     if (header != null) {
         Text(
             text = header.uppercase(Locale.ROOT),
@@ -2717,6 +2693,14 @@ internal fun SettingsGroup(
 
 @Composable
 internal fun RowDivider() {
+    if (glassSettings()) {
+        // the grouped list's hairline, inset past the icon tile
+        Box(
+            Modifier.padding(start = 60.dp).fillMaxWidth().height(0.5.dp)
+                .background(com.benitbuhner.liquidglass.LocalGlassTheme.current.secondaryLabel.copy(alpha = 0.18f)),
+        )
+        return
+    }
     HorizontalDivider(
         modifier = Modifier.padding(start = TEXT_INSET),
         thickness = 0.5.dp,
@@ -2775,6 +2759,33 @@ internal fun SettingsRow(
     onClick: (() -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
+    if (glassSettings()) {
+        // Glassé's Settings row: a coloured icon tile, the label and its subtitle, and the value and
+        // chevron (or the control) at the end.
+        com.benitbuhner.liquidglass.ListRow(
+            label = title,
+            icon = icon,
+            iconColor = settingsTileColor(title),
+            value = if (trailing == null) value else null,
+            chevron = trailing == null && onClick != null,
+            divider = false,
+            onClick = onClick,
+            subtitle = subtitle,
+            leading = iconContent ?: iconPainter?.let { p ->
+                {
+                    Box(
+                        Modifier.size(30.dp).clip(RoundedCornerShape(8.dp)).background(settingsTileColor(title)),
+                        contentAlignment = Alignment.Center,
+                    ) { Icon(p, null, Modifier.size(19.dp), tint = Color.White) }
+                }
+            },
+            labelTrailing = badge?.let { b -> { Badge(b) } },
+            below = subtitleContent,
+            enabled = enabled,
+            trailing = trailing,
+        )
+        return
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -2872,6 +2883,19 @@ internal fun SettingsSubRow(
     titleMaxLines: Int = 1,
     subtitleEndPadding: Dp = 0.dp,
 ) {
+    if (glassSettings()) {
+        com.benitbuhner.liquidglass.ListRow(
+            label = title,
+            modifier = Modifier.padding(start = indent),
+            divider = false,
+            onClick = { onCheckedChange(!checked) },
+            subtitle = subtitle,
+            labelTrailing = badge?.let { b -> { Badge(b) } },
+            enabled = enabled,
+            trailing = { IosSwitch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled) },
+        )
+        return
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -2954,6 +2978,28 @@ internal fun SliderRow(
     steps: Int,
     subtitle: String? = null,
 ) {
+    if (glassSettings()) {
+        // Glassé's slider (its glass thumb lifts and stretches as it is dragged) under a grouped-list row.
+        Column(Modifier.padding(bottom = 8.dp)) {
+            com.benitbuhner.liquidglass.ListRow(
+                label = title,
+                icon = icon,
+                iconColor = settingsTileColor(title),
+                value = value,
+                divider = false,
+                subtitle = subtitle,
+            )
+            com.benitbuhner.liquidglass.GlassSlider(
+                value = sliderValue,
+                onValueChange = onSliderValue,
+                modifier = Modifier.padding(start = 60.dp, end = 16.dp),
+                min = valueRange.start,
+                max = valueRange.endInclusive,
+                step = if (steps > 0) (valueRange.endInclusive - valueRange.start) / (steps + 1) else 0f,
+            )
+        }
+        return
+    }
     val colors = SliderDefaults.colors(
         thumbColor = MaterialTheme.colorScheme.primary,
         activeTrackColor = MaterialTheme.colorScheme.primary,

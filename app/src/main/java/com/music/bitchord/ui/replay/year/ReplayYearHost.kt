@@ -1,5 +1,6 @@
 package com.music.bitchord.ui.replay.year
 
+import com.music.bitchord.ui.components.AppSheet
 import androidx.activity.compose.BackHandler
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -37,13 +38,12 @@ fun ReplayYearHost(year: ReplayYear?, open: Boolean, onClose: () -> Unit) {
     }
     // Its own sheet: a card of the year story is shared as that card, as it
     // stood when it finished, not as one of the ordinary Replay's posters.
-    sharing?.let { slide ->
-        ModalBottomSheet(
-            onDismissRequest = { sharing = null },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = MaterialTheme.colorScheme.background,
-        ) {
-            ReplayYearShareSheet(year = year, slide = slide, onDismiss = { sharing = null })
-        }
+    AppSheet(
+        item = sharing,
+        onDismiss = { sharing = null },
+        containerColor = MaterialTheme.colorScheme.background,
+        skipPartiallyExpanded = true,
+    ) { slide ->
+        ReplayYearShareSheet(year = year, slide = slide, onDismiss = { sharing = null })
     }
 }
