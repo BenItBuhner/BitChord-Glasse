@@ -18,6 +18,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
@@ -1206,7 +1209,23 @@ private fun InlineQueueRow(
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (selectionChecked != null) {
+        if (selectionChecked != null && LocalPlayerGlassDisc.current != null) {
+            // Liquid Glass on: iOS's edit-mode selection circle, the row's tap toggling it.
+            Box(Modifier.size(32.dp), contentAlignment = Alignment.Center) {
+                Box(
+                    Modifier
+                        .size(22.dp)
+                        .clip(CircleShape)
+                        .then(
+                            if (selectionChecked) Modifier.background(Color(0xFFFA2D48))
+                            else Modifier.border(1.5.dp, Color.White.copy(alpha = 0.45f), CircleShape),
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (selectionChecked) Icon(Icons.Rounded.Check, null, tint = Color.White, modifier = Modifier.size(15.dp))
+                }
+            }
+        } else if (selectionChecked != null) {
             Checkbox(
                 checked = selectionChecked,
                 onCheckedChange = { onClick() },

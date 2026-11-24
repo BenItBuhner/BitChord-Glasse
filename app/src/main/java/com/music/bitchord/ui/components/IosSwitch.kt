@@ -70,8 +70,8 @@ fun IosSwitch(
 ) {
     // Liquid Glass on: Glassé's own switch (the thumb turns into a lens while touched), with the
     // app's haptics and the disabled look the iOS switch below has. A switch the row toggles
-    // (no onCheckedChange) stays the drawn one, so the row's tap still reaches the row.
-    if (onCheckedChange != null && LocalLiquidGlassEnabled.current && isGlassSupported()) {
+    // (no onCheckedChange) is Glassé's too, display-only, so the row's tap still reaches the row.
+    if (LocalLiquidGlassEnabled.current && isGlassSupported()) {
         val haptics = rememberHaptics()
         var settled by remember { mutableStateOf(false) }
         LaunchedEffect(checked) {
@@ -80,7 +80,7 @@ fun IosSwitch(
         }
         GlassSwitch(
             checked = checked,
-            onCheckedChange = { if (enabled) onCheckedChange(it) },
+            onCheckedChange = onCheckedChange?.let { cb -> { v: Boolean -> if (enabled) cb(v) } },
             modifier = modifier.graphicsLayer { alpha = if (enabled) 1f else 0.4f },
         )
         return

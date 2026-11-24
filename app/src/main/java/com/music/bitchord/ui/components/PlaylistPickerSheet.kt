@@ -38,6 +38,7 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Public
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material3.Button
+import com.benitbuhner.liquidglass.GlassSheet
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -137,27 +138,22 @@ fun PlaylistPickerSheet(
     // Once only: the sheet is still up, and tappable, while it slides away, and
     // a second tap on the tick would file the track a second time.
     var closing by remember { mutableStateOf(false) }
+    val glass = glasseAlertsOn()
+    var glassOpen by remember { mutableStateOf(true) }
     val closeAfter: (() -> Unit) -> Unit = { action ->
         if (!closing) {
             closing = true
             action()
-            scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() }
+            if (glass) {
+                glassOpen = false
+                scope.launch { kotlinx.coroutines.delay(450); onDismiss() }
+            } else {
+                scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() }
+            }
         }
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        // It reaches the top of the screen, where corners would only cut two
-        // notches out of the status bar's background.
-        shape = RectangleShape,
-        containerColor = MaterialTheme.colorScheme.background,
-        dragHandle = null,
-        contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
-        // Back is this sheet's to carry out, below: left to M3 it closes the whole
-        // sheet from either panel, and takes the ticks with it.
-        properties = ModalBottomSheetProperties(shouldDismissOnBackPress = false),
-    ) {
+    val body: @Composable () -> Unit = {
         BackHandler {
             if (creating && !startCreating) creating = false else closeAfter {}
         }
@@ -165,7 +161,7 @@ fun PlaylistPickerSheet(
         Column(
             Modifier
                 .fillMaxSize()
-                .statusBarsPadding(),
+                .then(if (glass) Modifier else Modifier.statusBarsPadding()),
         ) {
             if (creating) {
                 NewPlaylistForm(
@@ -266,6 +262,25 @@ fun PlaylistPickerSheet(
                 }
             }
         }
+    }
+    // Liquid Glass on: Glassé's sheet, floating glass at near full height, as Apple Music's
+    // "Add to a Playlist" is; otherwise the original full-screen sheet.
+    if (glass) {
+        GlassSheet(visible = glassOpen, onDismiss = { closeAfter {} }, detents = listOf(0.94f)) { body() }
+    } else {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = sheetState,
+            // It reaches the top of the screen, where corners would only cut two
+            // notches out of the status bar's background.
+            shape = RectangleShape,
+            containerColor = MaterialTheme.colorScheme.background,
+            dragHandle = null,
+            contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
+            // Back is this sheet's to carry out, below: left to M3 it closes the whole
+            // sheet from either panel, and takes the ticks with it.
+            properties = ModalBottomSheetProperties(shouldDismissOnBackPress = false),
+        ) { body() }
     }
 }
 

@@ -3158,6 +3158,10 @@ private fun BitChordApp(
                             },
                         ),
                 ) { destination ->
+                    // Liquid Glass slides pages over each other (iOS): while they move each is opaque, as a
+                    // page is there, so the one underneath shows only where the top one has moved off it.
+                    val sliding = glassActive && transition.isRunning
+                    Box(Modifier.fillMaxSize().then(if (sliding) Modifier.background(MaterialTheme.colorScheme.background) else Modifier)) {
                     // Every branch below reads `destination` rather than the
                     // stack that produced it. The two are the same thing only
                     // for the page being entered: the one on its way out is
@@ -4003,6 +4007,7 @@ private fun BitChordApp(
                             pageStates.SaveableStateProvider(key, pageContent)
                         }
                     }
+                    }
                 }
                 }
 
@@ -4268,14 +4273,20 @@ private fun BitChordApp(
                             // title.
                             if (route is AppRoute.LibraryShowAll) {
                                 Box {
-                                    TopBarAction(onClick = { librarySortMenuOpen = true }) {
+                                    TopBarAction(
+                                        modifier = Modifier.onGloballyPositioned { sortMenuAnchor = it.boundsInWindow() },
+                                        menuTrigger = true,
+                                        onClick = { librarySortMenuOpen = true },
+                                    ) {
                                         Icon(
                                             Icons.Rounded.Sort,
                                             contentDescription = stringResource(R.string.sort_library),
                                             tint = MaterialTheme.colorScheme.onSurface,
                                         )
                                     }
-                                    DropdownMenu(
+                                    // Liquid Glass on: the menu is [FrostedLibrarySortMenu], the
+                                    // button itself morphing into it.
+                                    if (!(glassSamplesBackdrop && glassMenusOn())) DropdownMenu(
                                         expanded = librarySortMenuOpen,
                                         onDismissRequest = { librarySortMenuOpen = false },
                                     ) {
@@ -5934,6 +5945,8 @@ private fun BitChordApp(
             )
         }
 
+        if (menuGlass != null) FrostedLibrarySortMenu(librarySortMenuOpen, sortMenuAnchor, menuGlass, hazeState, librarySort) { librarySortMenuOpen = false }
+
         val menuFolder = detail?.browseId?.takeIf { it.isDeviceFolder() }
         if (menuFolder != null && (folderMenuOpen || menuGlass != null)) {
             BackHandler(enabled = folderMenuOpen) { folderMenuOpen = false }
@@ -6490,6 +6503,28 @@ private fun FrostedSortMenu(
     }
 }
 
+/** The library's "Show all" sort, as Glassé's menu grown out of its sort button. */
+@Composable
+private fun FrostedLibrarySortMenu(
+    open: Boolean,
+    anchor: Rect?,
+    glass: GlasseBackdrop,
+    hazeState: HazeState,
+    selected: LibrarySort,
+    onDismiss: () -> Unit,
+) {
+    if (open) BackHandler { onDismiss() }
+    FrostedMenuPanel(open = open, anchor = anchor, glass = glass, hazeState = hazeState, onDismiss = onDismiss) {
+        LibrarySort.entries.forEach { option ->
+            FrostedMenuRow(
+                label = option.localizedLabel(),
+                checked = option == selected,
+                onClick = { AppSettings.setLibrarySort(option); onDismiss() },
+            )
+        }
+    }
+}
+
 /**
  * A device folder's menu, off the same button: list or grid for its tabs, then
  * its sort orders — the Files app's arrangement, view first and order under it.
@@ -6814,7 +6849,8 @@ private class PageSwitcher(initial: AppDestination, val scope: kotlinx.coroutine
 
     fun slide(initial: AppDestination, target: AppDestination): ContentTransform {
         val pop = (depths[target.key] ?: 0) < (depths[initial.key] ?: 0)
-        val spec = tween<IntOffset>(PAGE_SLIDE_MS, easing = PageEasing)
+        // while the finger drives it the page follows the finger 1:1; let go, the settle is a spring
+        val spec = if (swiping) tween<IntOffset>(PAGE_SLIDE_MS, easing = androidx.compose.animation.core.LinearEasing) else tween<IntOffset>(PAGE_SLIDE_MS, easing = PageEasing)
         return if (pop) {
             (slideInHorizontally(spec) { -it / 4 } togetherWith slideOutHorizontally(spec) { it })
                 .apply { targetContentZIndex = -1f }
