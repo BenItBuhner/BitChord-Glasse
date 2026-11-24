@@ -468,6 +468,9 @@ fun <T : Any> IosMenuPopover(
     glass: GlasseBackdrop? = null,
     /** The glyph of the button that opened it: the glass morph draws it on its head as the button turns into the menu. */
     triggerIcon: ImageVector? = Icons.Rounded.MoreHoriz,
+    /** The button is a bare glyph (a row's ⋮) with no glass of its own: the menu's glass grows out of it and
+     *  drains back into it, rather than starting and ending as a glass circle (Glassé's bareTrigger). */
+    bareTrigger: Boolean = false,
     content: @Composable (T) -> Unit,
 ) {
     var last by remember { mutableStateOf<Pair<T, Rect?>?>(null) }
@@ -489,7 +492,7 @@ fun <T : Any> IosMenuPopover(
     val reduceMotion = appReduceAnimation || systemAnimationsOff
 
     if (glass != null && glassMenusOn(reduceMotion)) {
-        GlassMenuPanel(menuItem, menuAnchor, open, onDismiss, glass, triggerIcon, onGone = { last = null }, content = content)
+        GlassMenuPanel(menuItem, menuAnchor, open, onDismiss, glass, triggerIcon, onGone = { last = null }, bareTrigger = bareTrigger, content = content)
         return
     }
 
@@ -684,6 +687,7 @@ private fun <T : Any> GlassMenuPanel(
     glass: GlasseBackdrop,
     triggerIcon: ImageVector?,
     onGone: () -> Unit,
+    bareTrigger: Boolean = false,
     content: @Composable (T) -> Unit,
 ) {
     PlayerBackHandler(enabled = open, onBack = onDismiss)
@@ -695,7 +699,7 @@ private fun <T : Any> GlassMenuPanel(
         }
     }
     if (collector.custom == 0) {
-        GlasseRowsMenu(collector, anchor, open, onDismiss, glass, triggerIcon, onGone)
+        GlasseRowsMenu(collector, anchor, open, onDismiss, glass, triggerIcon, onGone, bareTrigger)
         return
     }
     val state = remember { GlassMenuPopoverState() }
@@ -761,6 +765,7 @@ private fun GlasseRowsMenu(
     glass: GlasseBackdrop,
     triggerIcon: ImageVector?,
     onGone: () -> Unit,
+    bareTrigger: Boolean = false,
 ) {
     val trigger = com.benitbuhner.liquidglass.rememberGlassMenuTrigger()
     if (anchor != null && triggerIcon != null) DisposableEffect(trigger, anchor) {
@@ -802,6 +807,7 @@ private fun GlasseRowsMenu(
             anchorIcon = triggerIcon,
             width = IosMenuWidth,
             trigger = trigger,
+            bareTrigger = bareTrigger || MenuAnchor.isBare(anchor),
         )
     }
     }

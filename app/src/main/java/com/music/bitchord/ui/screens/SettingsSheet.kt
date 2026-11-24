@@ -2649,8 +2649,7 @@ internal fun SettingsGroup(
             Modifier.padding(horizontal = GROUP_INSET),
             header = header,
             footer = footer,
-            radius = 26.dp,
-        ) { content() }
+        ) { content() } // the demo's section, its own 22 pt radius
         return
     }
     if (header != null) {
@@ -2696,8 +2695,9 @@ internal fun RowDivider() {
     if (glassSettings()) {
         // the grouped list's hairline, inset past the icon tile
         Box(
-            Modifier.padding(start = 60.dp).fillMaxWidth().height(0.5.dp)
-                .background(com.benitbuhner.liquidglass.LocalGlassTheme.current.secondaryLabel.copy(alpha = 0.18f)),
+            // Glassé's ListRow separator: 0.5 dp at 58 dp, in iOS's separator colour
+            Modifier.padding(start = 58.dp).fillMaxWidth().height(0.5.dp)
+                .background(if (com.benitbuhner.liquidglass.LocalGlassTheme.current.isDark) Color(0x99545458) else Color(0x2B3C3C43)),
         )
         return
     }

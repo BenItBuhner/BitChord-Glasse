@@ -35,10 +35,16 @@ object MenuAnchor {
     private var bounds: Rect? = null
     private var recordedAt = 0L
 
-    internal fun record(bounds: Rect) {
+    private var bareBounds: Rect? = null
+
+    internal fun record(bounds: Rect, bare: Boolean = false) {
         this.bounds = bounds
         recordedAt = System.nanoTime()
+        bareBounds = if (bare) bounds else null
     }
+
+    /** Whether the button at [anchor] is a bare glyph (a row's ⋮), with no glass of its own for a menu to hand back to. */
+    fun isBare(anchor: Rect?): Boolean = anchor != null && anchor == bareBounds
 
     /** The button this opening was a tap on, in window coordinates, or null. */
     fun consume(): Rect? {
@@ -77,12 +83,16 @@ object MenuAnchor {
 val LocalMenuHold = staticCompositionLocalOf<(@Composable (onOpen: () -> Unit) -> Modifier)?> { null }
 
 @Composable
-fun Modifier.menuAnchor(onOpen: (() -> Unit)? = null): Modifier {
+fun Modifier.menuAnchor(
+    onOpen: (() -> Unit)? = null,
+    /** a bare glyph (a row's ⋮), not a glass button: a glass menu grows out of it and drains back into it */
+    bare: Boolean = false,
+): Modifier {
     val anchor = remember { AnchorCoordinates() }
     val hold = LocalMenuHold.current
     val held = if (hold != null && onOpen != null) {
         hold {
-            anchor.coordinates?.takeIf { it.isAttached }?.let { MenuAnchor.record(it.boundsInWindow()) }
+            anchor.coordinates?.takeIf { it.isAttached }?.let { MenuAnchor.record(it.boundsInWindow(), bare) }
             onOpen()
         }
     } else Modifier
@@ -100,7 +110,7 @@ fun Modifier.menuAnchor(onOpen: (() -> Unit)? = null): Modifier {
         .pointerInput(Unit) {
             awaitEachGesture {
                 awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-                anchor.coordinates?.takeIf { it.isAttached }?.let { MenuAnchor.record(it.boundsInWindow()) }
+                anchor.coordinates?.takeIf { it.isAttached }?.let { MenuAnchor.record(it.boundsInWindow(), bare) }
                 // held on the button: the row around it is not being held (see longPressMenuClickable)
                 MenuAnchor.pressed = true
                 try {
