@@ -5155,6 +5155,9 @@ private fun BitChordApp(
                             playerSheetMotion.laidOut = true
                         },
                 ) {
+                // Liquid Glass: the player's own Glassé host. The sheet is a window of its own, over the app's
+                // host, so a Glassé menu or alert opened in the player draws here, over the player, refracting it.
+                SheetGlassHost(LocalLiquidGlassEnabled.current) {
                     // The still the ⋯ menu below blurs under its panel — taken
                     // by the tap that opens it (see onOpenMenu), not the player
                     // live, which re-rendered all of it under the panel on every
@@ -5184,7 +5187,12 @@ private fun BitChordApp(
                         // Liquid Glass: the star and ⋯ beside the credits are Glassé buttons (dark glass, as
                         // the player is), refracting the player; the ⋯ turns into its menu (see menuAnchor).
                         val glassDisc = rememberPlayerGlassDisc(playerGlass.takeIf { glassSamplesBackdrop })
-                        CompositionLocalProvider(LocalPlayerDock provides activeDock, LocalPlayerGlassDisc provides glassDisc) {
+                        val glassCapsule = rememberPlayerGlassCapsule(playerGlass.takeIf { glassSamplesBackdrop })
+                        CompositionLocalProvider(
+                            LocalPlayerDock provides activeDock,
+                            LocalPlayerGlassDisc provides glassDisc,
+                            com.music.bitchord.ui.player.LocalPlayerGlassCapsule provides glassCapsule,
+                        ) {
                             nowPlaying(playerSong)
                         }
                     }
@@ -5216,6 +5224,7 @@ private fun BitChordApp(
                     ) { song ->
                         songMenuBody(song)
                     }
+                }
                 }
             }
         }
@@ -5310,6 +5319,8 @@ private fun BitChordApp(
                 item = songActions?.takeIf { songMenuOrigin == null && !(menuFromPlayer && playerRaised) },
                 anchor = songMenuAnchor,
                 triggerIcon = if (menuFromPlayer) Icons.Rounded.MoreHoriz else Icons.Rounded.MoreVert,
+                // A row's ⋮ is a bare glyph: the glass grows out of it. The player's ⋯ is a glass disc of its own.
+                bareTrigger = !menuFromPlayer,
                 onDismiss = { songActions = null },
                 backdrop = pageBackdrop,
                 hazeState = hazeState,
@@ -6881,7 +6892,21 @@ private fun rememberPlayerGlassDisc(glass: GlasseBackdrop?): (@Composable (Image
     return remember(glass, theme) {
         { icon, description, onClick, modifier ->
             CompositionLocalProvider(LocalGlassTheme provides theme) {
-                GlassIconButton(icon, description, onClick, glass, modifier, size = 36.dp)
+                GlassIconButton(icon, description, onClick, glass, modifier, size = 44.dp) // the demo player's star and ⋯: Glassé's 44 pt bar buttons
+            }
+        }
+    }
+}
+
+/** The player's bottom-row capsules (output and party, the queue's play modes) on Glassé's dark glass. */
+@Composable
+private fun rememberPlayerGlassCapsule(glass: GlasseBackdrop?): (@Composable (Modifier, @Composable () -> Unit) -> Unit)? {
+    if (glass == null) return null
+    val theme = LocalGlassTheme.current.copy(scheme = GlassScheme.Dark)
+    return remember(glass, theme) {
+        { modifier, content ->
+            CompositionLocalProvider(LocalGlassTheme provides theme) {
+                com.benitbuhner.liquidglass.GlassSurface(glass, modifier) { content() }
             }
         }
     }
@@ -7078,3 +7103,9 @@ private fun GlyphSwap(key: Any, content: @Composable (Any) -> Unit) {
 }
 
 private val glassMenuHold: @Composable (() -> Unit) -> Modifier = { open -> Modifier.glassMenuHold(open) }
+
+/** Glassé's overlay layer for a window of its own (a sheet, a dialog): menus opened in it draw over it, not under. */
+@Composable
+private fun SheetGlassHost(enabled: Boolean, content: @Composable () -> Unit) {
+    if (enabled) com.benitbuhner.liquidglass.GlassHost { content() } else content()
+}

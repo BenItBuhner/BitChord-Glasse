@@ -1069,6 +1069,9 @@ internal fun CircleGlyph(
  * credits as that platform's glass buttons (icon, description, click, modifier)
  * in place of the frosted discs. Null keeps the discs.
  */
+/** Set by a platform whose Liquid Glass is on: the bottom row's capsules on that platform's glass. Null keeps the frosted capsule. */
+val LocalPlayerGlassCapsule = staticCompositionLocalOf<(@Composable (Modifier, @Composable () -> Unit) -> Unit)?> { null }
+
 val LocalPlayerGlassDisc = staticCompositionLocalOf<(@Composable (ImageVector, String, () -> Unit, Modifier) -> Unit)?> { null }
 
 /**
@@ -1348,6 +1351,16 @@ private fun Pill(
     modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit,
 ) {
+    val glassCapsule = LocalPlayerGlassCapsule.current
+    if (glassCapsule != null) {
+        // Liquid Glass on: the platform's own glass capsule (Glassé on Android) holds the segments.
+        glassCapsule(
+            modifier
+                .height(BOTTOM_ACTION_SIZE)
+                .animateContentSize(animationSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow)),
+        ) { Row(Modifier.fillMaxHeight().clip(CircleShape), verticalAlignment = Alignment.CenterVertically, content = content) }
+        return
+    }
     Row(
         modifier = modifier
             .height(BOTTOM_ACTION_SIZE)
