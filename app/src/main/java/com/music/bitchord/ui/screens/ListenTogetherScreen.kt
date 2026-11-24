@@ -1,5 +1,8 @@
 package com.music.bitchord.ui.screens
 
+import com.music.bitchord.ui.components.AppSheet
+import com.music.bitchord.ui.components.glasseAlertsOn
+import com.music.bitchord.ui.components.AppGlassAlert
 import com.music.bitchord.ui.icons.SfIcons
 import android.content.Intent
 import android.text.format.DateFormat
@@ -277,6 +280,39 @@ fun ListenTogetherScreen(
 
     pendingServerSwitchInvite?.let { (codeToJoin, serverToSet) ->
         val isSwitchToOfficial = serverToSet.isBlank()
+        if (glasseAlertsOn()) {
+            AppGlassAlert(
+                title = stringResource(
+                    if (isSwitchToOfficial) R.string.listen_together_official_server_dialog_title
+                    else R.string.listen_together_custom_server_dialog_title,
+                ),
+                message = if (isSwitchToOfficial) {
+                    stringResource(R.string.listen_together_official_server_dialog_message, codeToJoin)
+                } else {
+                    stringResource(R.string.listen_together_custom_server_dialog_message, serverToSet, codeToJoin)
+                },
+                actions = listOf(
+                    com.benitbuhner.liquidglass.GlassAlertAction(stringResource(R.string.cancel), com.benitbuhner.liquidglass.AlertActionStyle.Cancel, onClick = {
+                        pendingServerSwitchInvite = null
+                        onInviteHandled()
+                    }),
+                    com.benitbuhner.liquidglass.GlassAlertAction(
+                        stringResource(R.string.listen_together_custom_server_switch_and_join),
+                        com.benitbuhner.liquidglass.AlertActionStyle.Prominent,
+                        onClick = {
+                            pendingServerSwitchInvite = null
+                            openPartyPreview(codeToJoin, serverToSet.ifBlank { null })
+                            onInviteHandled()
+                        },
+                    ),
+                ),
+                onDismiss = {
+                    pendingServerSwitchInvite = null
+                    onInviteHandled()
+                },
+            )
+            return@let
+        }
         AlertDialog(
             onDismissRequest = {
                 pendingServerSwitchInvite = null
@@ -342,9 +378,10 @@ fun ListenTogetherScreen(
         )
     }
 
-    sheet?.let { open ->
-        ModalBottomSheet(
-            onDismissRequest = {
+    run {
+        AppSheet(
+            item = sheet,
+            onDismiss = {
                 sheet = null
                 // Closed with the message unread is still read: leaving it set
                 // would surface it on the page underneath, as a line about a
@@ -353,7 +390,7 @@ fun ListenTogetherScreen(
             },
             sheetState = sheetState,
             containerColor = MaterialTheme.colorScheme.background,
-        ) {
+        ) { open ->
             when (open) {
                 PartySheet.Create -> CreatePartySheet(
                     avatarUrl = ListenTogether.myAvatarUrl(),

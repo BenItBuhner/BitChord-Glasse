@@ -123,7 +123,7 @@ fun TopBarDownloadButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
             shrinkTowards = Alignment.End,
         ),
     ) {
-        IconButton(
+        TopBarAction(
             onClick = {
                 haptics.play(Haptic.Select)
                 onClick()

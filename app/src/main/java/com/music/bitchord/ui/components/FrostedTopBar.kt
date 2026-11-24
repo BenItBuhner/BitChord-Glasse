@@ -1,5 +1,11 @@
 package com.music.bitchord.ui.components
 
+import com.benitbuhner.liquidglass.Backdrop as GlasseBackdrop
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.runtime.staticCompositionLocalOf
+import com.benitbuhner.liquidglass.GlassButton
 import com.benitbuhner.liquidglass.GlassIconButton
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -338,7 +344,18 @@ fun FrostedTopBar(
                     }
                     Spacer(Modifier.width(ACCESSORY_GAP))
                 }
-                if (useFloatingChrome) {
+                val glasse = LocalGlasseBackdrop.current
+                if (useFloatingChrome && LocalLiquidGlassEnabled.current && isGlassSupported() && !reduceDynamicBlur && glasse != null) {
+                    // Liquid Glass: each action is a Glassé button of its own, 10 dp apart (iOS 26's bar
+                    // group, the demo's GlassGroup gap), each pressing, following and stretching on its own,
+                    // and a menu morphs out of the very button that opens it.
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(TOP_GLASS_GAP),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        CompositionLocalProvider(LocalTopBarGlass provides glasse, content = actions)
+                    }
+                } else if (useFloatingChrome) {
                     ArtworkPageActions(hazeState = backButtonHazeState, content = actions)
                 } else {
                     actions()
@@ -347,6 +364,55 @@ fun FrostedTopBar(
         }
         HorizontalDivider(thickness = 0.5.dp, color = dividerColor)
         RefreshPuck(refreshing = refreshing, pullFraction = pullFraction)
+    }
+}
+
+/** Between two glass buttons at the bar's trailing end: iOS 26's bar group gap. */
+private val TOP_GLASS_GAP = 10.dp
+
+/** Set by the bar while its actions are Glassé buttons: what they refract. */
+val LocalTopBarGlass = staticCompositionLocalOf<GlasseBackdrop?> { null }
+
+/**
+ * One action at the trailing end of the bar. With Liquid Glass on it is a Glassé
+ * button of its own (see [FrostedTopBar]); otherwise the plain icon button the
+ * pill has always held, unchanged. [menuTrigger]: it opens a menu, which then
+ * morphs out of it (see [menuAnchor]).
+ */
+@Composable
+fun TopBarAction(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    menuTrigger: Boolean = false,
+    content: @Composable () -> Unit,
+) {
+    val glass = LocalTopBarGlass.current
+    val anchor = if (menuTrigger) Modifier.menuAnchor() else Modifier
+    if (glass != null) {
+        GlassButton(onClick, glass, modifier.then(anchor).size(TOP_CONTROL_SIZE), contentPadding = PaddingValues(0.dp)) {
+            Box(Modifier.size(TOP_CONTROL_SIZE), contentAlignment = Alignment.Center) { content() }
+        }
+    } else {
+        IconButton(onClick = onClick, modifier = modifier.then(anchor)) { content() }
+    }
+}
+
+@Composable
+fun TopBarAction(
+    icon: ImageVector,
+    contentDescription: String?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    menuTrigger: Boolean = false,
+    tint: Color = Color.Unspecified,
+) {
+    TopBarAction(onClick, modifier, menuTrigger) {
+        Icon(
+            icon,
+            contentDescription = contentDescription,
+            tint = if (tint != Color.Unspecified) tint else if (LocalTopBarGlass.current != null) LocalContentColor.current else MaterialTheme.colorScheme.onSurface,
+            modifier = if (LocalTopBarGlass.current != null) Modifier.size(22.dp) else Modifier,
+        )
     }
 }
 
@@ -549,6 +615,39 @@ fun TopBarAccountButton(
 ) {
     val translation = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
+    val glass = LocalTopBarGlass.current
+    if (glass != null) {
+        // Liquid Glass: the photo is the face of a Glassé button (as Apple Music's is), so it presses,
+        // follows and stretches with the glass around it.
+        GlassButton(
+            onClick,
+            glass,
+            modifier
+                .size(TOP_CONTROL_SIZE)
+                .graphicsLayer { translationY = translation.value }
+                .profileSwipe(onSwipeProfile, translation, scope),
+            contentPadding = PaddingValues(0.dp),
+        ) {
+            val photo = account?.thumbnailUrl
+            Box(Modifier.size(TOP_CONTROL_SIZE), contentAlignment = Alignment.Center) {
+                if (photo != null) {
+                    AsyncImage(
+                        model = photo,
+                        contentDescription = stringResource(R.string.switch_account),
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.size(TOP_CONTROL_SIZE - 6.dp).clip(CircleShape),
+                    )
+                } else {
+                    Icon(
+                        Icons.Rounded.Person,
+                        contentDescription = stringResource(R.string.switch_account),
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+            }
+        }
+        return
+    }
     // Wrapped in an IconButton so it keeps the touch target, the ripple and the
     // spacing every other action in this bar has.
     IconButton(
@@ -599,6 +698,26 @@ fun TopBarAccountButton(
             }
         }
     }
+}
+
+/** A vertical swipe on the account photo steps through the account's profiles. */
+private fun Modifier.profileSwipe(
+    onSwipeProfile: ((forward: Boolean) -> Boolean)?,
+    translation: Animatable<Float, *>,
+    scope: kotlinx.coroutines.CoroutineScope,
+): Modifier = if (onSwipeProfile == null) this else pointerInput(onSwipeProfile) {
+    var drag = 0f
+    detectVerticalDragGestures(
+        onDragStart = { drag = 0f },
+        onVerticalDrag = { change, amount -> change.consume(); drag += amount },
+        onDragEnd = {
+            if (kotlin.math.abs(drag) < 28f) return@detectVerticalDragGestures
+            if (!onSwipeProfile.invoke(drag > 0f)) scope.launch {
+                translation.snapTo(if (drag > 0f) 9f else -9f)
+                translation.animateTo(0f, spring())
+            }
+        },
+    )
 }
 
 /**

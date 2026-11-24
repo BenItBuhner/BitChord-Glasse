@@ -4270,7 +4270,7 @@ fun NowPlayingScreen(
                                         active = liked,
                                         haptic = if (liked) Haptic.ToggleOff else Haptic.ToggleOn,
                                     )
-                                    Spacer(Modifier.width(8.dp))
+                                    Spacer(Modifier.width(if (LocalPlayerGlassDisc.current != null) 10.dp else 8.dp))
                                 }
                                 // While the lyrics are up the menu glyph becomes the share
                                 // entry: the same pick mode a long-press on a line opens,

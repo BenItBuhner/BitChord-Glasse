@@ -1,5 +1,15 @@
 package com.music.bitchord
 
+import androidx.compose.runtime.Stable
+import androidx.compose.animation.ContentTransform
+import androidx.compose.ui.platform.LocalLayoutDirection
+import com.music.bitchord.ui.navigation.RouteEntry
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlin.math.abs
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.util.VelocityTracker
 import com.benitbuhner.liquidglass.GlassHost
 import android.Manifest
 import android.content.Context
@@ -20,6 +30,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.SeekableTransitionState
+import androidx.compose.animation.core.rememberTransition
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.CubicBezierEasing
@@ -75,6 +89,7 @@ import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.IosShare
 import androidx.compose.material.icons.rounded.MoreHoriz
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Sort
 import androidx.compose.material.icons.rounded.Upgrade
@@ -258,6 +273,8 @@ import com.music.bitchord.ui.components.ReorderPlaylistPage
 import com.music.bitchord.ui.components.LongPressOrigin
 import com.music.bitchord.ui.components.MenuAnchor
 import com.music.bitchord.ui.components.menuAnchor
+import com.music.bitchord.ui.components.TopBarAction
+import com.music.bitchord.ui.components.AppSheet
 import com.music.bitchord.ui.components.IosMenuPopover
 import com.music.bitchord.ui.components.SongActionsMenu
 import com.music.bitchord.ui.components.HeldContextMenu
@@ -285,6 +302,8 @@ import com.music.bitchord.ui.components.LocalScreenGlass
 import com.music.bitchord.ui.components.pageGlassSource
 import com.music.bitchord.ui.components.screenGlassSource
 import com.benitbuhner.liquidglass.GlassScheme
+import com.benitbuhner.liquidglass.GlassIconButton
+import com.music.bitchord.ui.player.LocalPlayerGlassDisc
 import com.benitbuhner.liquidglass.GlassTheme
 import com.benitbuhner.liquidglass.LocalGlassTheme
 import com.benitbuhner.liquidglass.rememberBackdrop as rememberGlasseBackdrop
@@ -3053,13 +3072,17 @@ private fun BitChordApp(
                 .then(if (glassSamplesBackdrop) Modifier.screenGlassSource(screenGlass, MaterialTheme.colorScheme.background) else Modifier),
         ) {
             Box(Modifier.weight(1f).fillMaxHeight()) {
-                AnimatedContent(
-                    // Whatever is on top of the back stack — see [AppNavigator].
-                    targetState = when {
-                        visibleEntry != null -> AppDestination.Route(visibleEntry)
-                        detail != null -> AppDestination.Release(detail.browseId)
-                        else -> AppDestination.Tab(selectedTab)
-                    },
+                // In a method of its own: BitChordApp is at the JVM's method size limit.
+                Isolated {
+                // Whatever is on top of the back stack — see [AppNavigator].
+                val pageTarget: AppDestination = when {
+                    visibleEntry != null -> AppDestination.Route(visibleEntry)
+                    detail != null -> AppDestination.Release(detail.browseId)
+                    else -> AppDestination.Tab(selectedTab)
+                }
+                val pages = rememberPageSwitcher(pageTarget, navigator.entries, detailStack.map { it.browseId }, glassActive)
+                val pageTransition = rememberTransition(pages.seek, label = "content")
+                pageTransition.AnimatedContent(
                     // A route's entry is copied when the release pages under it
                     // change, which is not a different page.
                     contentKey = { it.key },
@@ -3093,6 +3116,9 @@ private fun BitChordApp(
                             (target.isShowAll() && initial == libraryTab)
                         if (tabSwap || libraryShowAllSwap) {
                             EnterTransition.None togetherWith ExitTransition.None
+                        } else if (glassActive) {
+                            // Liquid Glass: iOS's push and pop (see [PageSwitcher.slide]).
+                            pages.slide(initial, target)
                         } else {
                             fadeIn(tween(180)) togetherWith fadeOut(tween(180))
                         }
@@ -3117,12 +3143,25 @@ private fun BitChordApp(
                                     // the glass bar collapses on all of them
                                     // without each one having to know about it.
                                     .nestedScroll(navBarScroll)
+                                    // iOS's swipe back from the leading edge: the page follows the
+                                    // finger, the one under it showing, and goes on release past a
+                                    // third of the way (or flung), else settles back.
+                                    .pageSwipeBack(
+                                        pages,
+                                        enabled = navigator.entries.isNotEmpty() || detailStack.isNotEmpty(),
+                                        under = { destinationUnder(navigator.entries, detailStack.map { it.browseId }, selectedTab) },
+                                        depthOf = { pageDepth(it, navigator.entries, detailStack.map { d -> d.browseId }) },
+                                        goBack = goBack,
+                                    )
                             } else {
                                 Modifier
                             },
                         ),
-                    label = "content",
                 ) { destination ->
+                    // Liquid Glass slides pages over each other (iOS): while they move each is opaque, as a
+                    // page is there, so the one underneath shows only where the top one has moved off it.
+                    val sliding = glassActive && transition.isRunning
+                    Box(Modifier.fillMaxSize().then(if (sliding) Modifier.background(MaterialTheme.colorScheme.background) else Modifier)) {
                     // Every branch below reads `destination` rather than the
                     // stack that produced it. The two are the same thing only
                     // for the page being entered: the one on its way out is
@@ -3132,7 +3171,7 @@ private fun BitChordApp(
                     val key = destination.key
                     val pageRoute = (destination as? AppDestination.Route)?.entry?.route
                     val live = (destination as? AppDestination.Release)?.let { release ->
-                        detailStack.lastOrNull()?.takeIf { it.browseId == release.browseId }
+                        detailStack.lastOrNull { it.browseId == release.browseId }
                     }
                     // Held for the same reason, one step further on: a popped
                     // page is off the stack before it has finished animating
@@ -3968,6 +4007,8 @@ private fun BitChordApp(
                             pageStates.SaveableStateProvider(key, pageContent)
                         }
                     }
+                    }
+                }
                 }
 
                 // The top-bar footprint is transparent on every page so the
@@ -4191,7 +4232,7 @@ private fun BitChordApp(
                         // be mistaken for a per-page action — Home, at rest.
                         if (route == null && detail == null && selectedTab == TAB_HOME) {
                             updateNotice?.let { update ->
-                                IconButton(onClick = { showUpdateDialog = true }) {
+                                TopBarAction(onClick = { showUpdateDialog = true }) {
                                     Icon(
                                         // An arrow rising out of a bar, not the
                                         // little phone-with-an-arrow: at 24dp the
@@ -4212,7 +4253,7 @@ private fun BitChordApp(
                             // a history is a record of what was played, which reads
                             // as that tab's business rather than every tab's.
                             if (route == null && detail == null && selectedTab == TAB_LIBRARY) {
-                                IconButton(
+                                TopBarAction(
                                     onClick = {
                                         navigator.push(AppRoute.History)
                                         viewModel.loadHistory()
@@ -4232,14 +4273,20 @@ private fun BitChordApp(
                             // title.
                             if (route is AppRoute.LibraryShowAll) {
                                 Box {
-                                    IconButton(onClick = { librarySortMenuOpen = true }) {
+                                    TopBarAction(
+                                        modifier = Modifier.onGloballyPositioned { sortMenuAnchor = it.boundsInWindow() },
+                                        menuTrigger = true,
+                                        onClick = { librarySortMenuOpen = true },
+                                    ) {
                                         Icon(
                                             Icons.Rounded.Sort,
                                             contentDescription = stringResource(R.string.sort_library),
                                             tint = MaterialTheme.colorScheme.onSurface,
                                         )
                                     }
-                                    DropdownMenu(
+                                    // Liquid Glass on: the menu is [FrostedLibrarySortMenu], the
+                                    // button itself morphing into it.
+                                    if (!(glassSamplesBackdrop && glassMenusOn())) DropdownMenu(
                                         expanded = librarySortMenuOpen,
                                         onDismissRequest = { librarySortMenuOpen = false },
                                     ) {
@@ -4270,7 +4317,7 @@ private fun BitChordApp(
                             if ((isReleaseDetail || isLocalDetail) && detail != null) {
                                 val releaseSongs = (detail.songs as? UiState.Success)?.data.orEmpty()
                                 if (releaseSongs.isNotEmpty()) {
-                                    IconButton(onClick = { detailSearching = !detailSearching }) {
+                                    TopBarAction(onClick = { detailSearching = !detailSearching }) {
                                         Icon(
                                             if (detailSearching) Icons.Rounded.Close else BitChordIcons.Search,
                                             contentDescription = stringResource(
@@ -4284,8 +4331,9 @@ private fun BitChordApp(
                                 // with the app's other frosted overlays further
                                 // down — in the main hierarchy, where the haze
                                 // can see the content it blurs.
-                                IconButton(
+                                TopBarAction(
                                     modifier = Modifier.onGloballyPositioned { sortMenuAnchor = it.boundsInWindow() },
+                                    menuTrigger = true,
                                     onClick = { if (isLocalDetail) folderMenuOpen = true else songSortMenuOpen = true },
                                 ) {
                                     Icon(
@@ -4305,8 +4353,8 @@ private fun BitChordApp(
                                     // tracks arrive stamped with the album they came
                                     // off, which is what the download record groups
                                     // them under.
-                                    IconButton(
-                                        modifier = Modifier.menuAnchor(),
+                                    TopBarAction(
+                                        menuTrigger = true,
                                         onClick = {
                                             openBrowseMenu(BrowseTarget(
                                                 browseId = detail.browseId,
@@ -4340,7 +4388,7 @@ private fun BitChordApp(
                             if (detail != null && !isLocalDetail && detail.type == BrowseType.ARTIST &&
                                 detailActiveShelf == null && detail.browseId.startsWith("UC")
                             ) {
-                                IconButton(
+                                TopBarAction(
                                     onClick = {
                                         val sendIntent = Intent(Intent.ACTION_SEND).apply {
                                             type = "text/plain"
@@ -5088,7 +5136,10 @@ private fun BitChordApp(
                             if (reduceDynamicBlur) Modifier else Modifier.hazeSource(playerMenuHaze),
                         ),
                     ) {
-                        CompositionLocalProvider(LocalPlayerDock provides activeDock) {
+                        // Liquid Glass: the star and ⋯ beside the credits are Glassé buttons (dark glass, as
+                        // the player is), refracting the player; the ⋯ turns into its menu (see menuAnchor).
+                        val glassDisc = rememberPlayerGlassDisc(playerGlass.takeIf { glassSamplesBackdrop })
+                        CompositionLocalProvider(LocalPlayerDock provides activeDock, LocalPlayerGlassDisc provides glassDisc) {
                             nowPlaying(playerSong)
                         }
                     }
@@ -5145,17 +5196,17 @@ private fun BitChordApp(
         }
 
         // ---- Share the Replay ----
-        if (showReplayShare) {
-            replay.summary?.takeUnless { it.isEmpty }?.let { summary ->
-                ModalBottomSheet(
-                    onDismissRequest = { showReplayShare = false },
-                    // Straight to full height. The sheet is a picture and two
-                    // buttons, and half-open it showed the picture with both
-                    // buttons below the fold — a sheet whose only two controls
-                    // need a drag to reach.
-                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-                    containerColor = MaterialTheme.colorScheme.background,
-                ) {
+        run {
+            AppSheet(
+                item = replay.summary?.takeUnless { it.isEmpty }?.takeIf { showReplayShare },
+                onDismiss = { showReplayShare = false },
+                // Straight to full height. The sheet is a picture and two
+                // buttons, and half-open it showed the picture with both
+                // buttons below the fold — a sheet whose only two controls
+                // need a drag to reach.
+                skipPartiallyExpanded = true,
+                containerColor = MaterialTheme.colorScheme.background,
+            ) { summary ->
                     ReplayShareSheet(
                         summary = summary,
                         holder = account?.name.orEmpty(),
@@ -5163,7 +5214,6 @@ private fun BitChordApp(
                         page = replaySharePage,
                         onDismiss = { showReplayShare = false },
                     )
-                }
             }
         }
 
@@ -5214,6 +5264,7 @@ private fun BitChordApp(
             IosMenuPopover(
                 item = songActions?.takeIf { songMenuOrigin == null && !(menuFromPlayer && playerRaised) },
                 anchor = songMenuAnchor,
+                triggerIcon = if (menuFromPlayer) Icons.Rounded.MoreHoriz else Icons.Rounded.MoreVert,
                 onDismiss = { songActions = null },
                 backdrop = pageBackdrop,
                 hazeState = hazeState,
@@ -5653,13 +5704,12 @@ private fun BitChordApp(
             // Rename is a text field and a keyboard, which have no place on a menu
             // floating over the page: the menu hands it on, and the form comes up
             // here on a sheet of its own.
-            browseActions?.takeIf { browseRenameInSheet }?.let { target ->
-                ModalBottomSheet(
-                    onDismissRequest = { browseActions = null },
-                    containerColor = MaterialTheme.colorScheme.background,
-                ) {
-                    browseMenuBody(target)
-                }
+            AppSheet(
+                item = browseActions?.takeIf { browseRenameInSheet },
+                onDismiss = { browseActions = null },
+                containerColor = MaterialTheme.colorScheme.background,
+            ) { target ->
+                browseMenuBody(target)
             }
             HeldContextMenu(
                 item = browseActions,
@@ -5894,6 +5944,8 @@ private fun BitChordApp(
                 onDismiss = { songSortMenuOpen = false },
             )
         }
+
+        if (menuGlass != null) FrostedLibrarySortMenu(librarySortMenuOpen, sortMenuAnchor, menuGlass, hazeState, librarySort) { librarySortMenuOpen = false }
 
         val menuFolder = detail?.browseId?.takeIf { it.isDeviceFolder() }
         if (menuFolder != null && (folderMenuOpen || menuGlass != null)) {
@@ -6451,6 +6503,28 @@ private fun FrostedSortMenu(
     }
 }
 
+/** The library's "Show all" sort, as Glassé's menu grown out of its sort button. */
+@Composable
+private fun FrostedLibrarySortMenu(
+    open: Boolean,
+    anchor: Rect?,
+    glass: GlasseBackdrop,
+    hazeState: HazeState,
+    selected: LibrarySort,
+    onDismiss: () -> Unit,
+) {
+    if (open) BackHandler { onDismiss() }
+    FrostedMenuPanel(open = open, anchor = anchor, glass = glass, hazeState = hazeState, onDismiss = onDismiss) {
+        LibrarySort.entries.forEach { option ->
+            FrostedMenuRow(
+                label = option.localizedLabel(),
+                checked = option == selected,
+                onClick = { AppSettings.setLibrarySort(option); onDismiss() },
+            )
+        }
+    }
+}
+
 /**
  * A device folder's menu, off the same button: list or grid for its tabs, then
  * its sort orders — the Files app's arrangement, view first and order under it.
@@ -6503,7 +6577,7 @@ private fun FrostedMenuPanel(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     if (glass != null) {
-        IosMenuPopover(item = if (open) Unit else null, anchor = anchor, onDismiss = onDismiss, glass = glass) {
+        IosMenuPopover(item = if (open) Unit else null, anchor = anchor, onDismiss = onDismiss, glass = glass, triggerIcon = Icons.Rounded.Sort) {
             Column(content = content)
         }
         return
@@ -6746,3 +6820,175 @@ private suspend fun LazyListState.scrollToTopEased() {
 
 /** Safely converts a nullable Float to non-null, defaulting to 0f for null. */
 private fun Float?.orZero(): Float = this ?: 0f
+
+/** The player's star and ⋯ as Glassé buttons over [glass] (dark glass, as the player is); null keeps the discs. */
+@Composable
+private fun rememberPlayerGlassDisc(glass: GlasseBackdrop?): (@Composable (ImageVector, String, () -> Unit, Modifier) -> Unit)? {
+    if (glass == null) return null
+    val theme = LocalGlassTheme.current.copy(scheme = GlassScheme.Dark)
+    return remember(glass, theme) {
+        { icon, description, onClick, modifier ->
+            CompositionLocalProvider(LocalGlassTheme provides theme) {
+                GlassIconButton(icon, description, onClick, glass, modifier, size = 36.dp)
+            }
+        }
+    }
+}
+
+/**
+ * The page area's switcher: a seekable transition so the swipe back can scrub
+ * between the page and the one under it, and how deep each page sits (kept for
+ * pages already popped) so a push slides in over the page it covers and a pop
+ * slides back off it.
+ */
+@Stable
+private class PageSwitcher(initial: AppDestination, val scope: kotlinx.coroutines.CoroutineScope) {
+    val seek = SeekableTransitionState(initial)
+    val depths = HashMap<String, Int>()
+    var swiping by mutableStateOf(false)
+
+    fun slide(initial: AppDestination, target: AppDestination): ContentTransform {
+        val pop = (depths[target.key] ?: 0) < (depths[initial.key] ?: 0)
+        // while the finger drives it the page follows the finger 1:1; let go, the settle is a spring
+        val spec = if (swiping) tween<IntOffset>(PAGE_SLIDE_MS, easing = androidx.compose.animation.core.LinearEasing) else tween<IntOffset>(PAGE_SLIDE_MS, easing = PageEasing)
+        return if (pop) {
+            (slideInHorizontally(spec) { -it / 4 } togetherWith slideOutHorizontally(spec) { it })
+                .apply { targetContentZIndex = -1f }
+        } else {
+            (slideInHorizontally(spec) { it } togetherWith slideOutHorizontally(spec) { -it / 4 })
+                .apply { targetContentZIndex = 1f }
+        }
+    }
+}
+
+@Composable
+private fun rememberPageSwitcher(target: AppDestination, entries: List<RouteEntry>, detailIds: List<String>, glass: Boolean): PageSwitcher {
+    val scope = rememberCoroutineScope()
+    val pages = remember { PageSwitcher(target, scope) }
+    pages.depths[target.key] = pageDepth(target, entries, detailIds)
+    LaunchedEffect(target) {
+        if (!pages.swiping) {
+            if (glass) pages.seek.animateTo(target, PAGE_SPRING) else pages.seek.animateTo(target)
+        }
+    }
+    return pages
+}
+
+/** [edgeSwipeBack] driving [pages]: scrubs to the page under this one and goes back on a committed release. */
+@Composable
+private fun Modifier.pageSwipeBack(
+    pages: PageSwitcher,
+    enabled: Boolean,
+    under: () -> AppDestination?,
+    depthOf: (AppDestination) -> Int,
+    goBack: () -> Unit,
+): Modifier = edgeSwipeBack(
+    enabled = enabled,
+    rtl = LocalLayoutDirection.current == LayoutDirection.Rtl,
+    onStart = {
+        val u = under()
+        if (u == null || u.key == pages.seek.currentState.key) false else {
+            pages.depths[u.key] = depthOf(u)
+            pages.swiping = true
+            pages.scope.launch { pages.seek.seekTo(0f, u) }
+            true
+        }
+    },
+    onProgress = { f -> pages.scope.launch { pages.seek.seekTo(f) } },
+    onEnd = { commit ->
+        pages.scope.launch {
+            if (commit) {
+                goBack()
+                pages.seek.animateTo(pages.seek.targetState, PAGE_SPRING)
+            } else {
+                pages.seek.animateTo(pages.seek.currentState, PAGE_SPRING)
+            }
+            pages.swiping = false
+        }
+    },
+)
+
+/** iOS's push and pop: about a third of a second, easing out hard (UINavigationController). */
+private const val PAGE_SLIDE_MS = 380
+private val PageEasing = CubicBezierEasing(0.2f, 0.9f, 0.25f, 1f)
+/** The swipe back's settle once the finger lets go: no bounce, as the edge swipe's. */
+private val PAGE_SPRING = androidx.compose.animation.core.spring<Float>(dampingRatio = 1f, stiffness = 420f)
+
+/**
+ * How deep [destination] sits on the one back stack: the tab is 0, each route
+ * and release page one more than whatever it was opened over.
+ */
+private fun pageDepth(destination: AppDestination, entries: List<RouteEntry>, detailIds: List<String>): Int = when (destination) {
+    is AppDestination.Tab -> 0
+    is AppDestination.Route -> {
+        val i = entries.indexOfFirst { it.id == destination.entry.id }
+        destination.entry.detailDepth + (if (i < 0) entries.size else i) + 1
+    }
+    is AppDestination.Release -> {
+        val i = detailIds.lastIndexOf(destination.browseId)
+        if (i < 0) detailIds.size + entries.size + 1 else i + 1 + entries.count { it.detailDepth <= i }
+    }
+}
+
+/** What one step back would show: the page under the one on screen, or null when the tab is all there is. */
+private fun destinationUnder(entries: List<RouteEntry>, detailIds: List<String>, tab: Int): AppDestination? {
+    val top = entries.lastOrNull()
+    val depth = detailIds.size
+    if (depth > (top?.detailDepth ?: 0)) {
+        val d = depth - 1
+        return top?.takeIf { d <= it.detailDepth }?.let { AppDestination.Route(it) }
+            ?: detailIds.getOrNull(d - 1)?.let { AppDestination.Release(it) }
+            ?: AppDestination.Tab(tab)
+    }
+    if (top == null) return null
+    return entries.getOrNull(entries.size - 2)?.takeIf { depth <= it.detailDepth }?.let { AppDestination.Route(it) }
+        ?: detailIds.lastOrNull()?.let { AppDestination.Release(it) }
+        ?: AppDestination.Tab(tab)
+}
+
+/**
+ * iOS's interactive swipe back: a drag that starts within the leading edge and
+ * runs horizontally drives [onProgress] (0..1 of the width) once [onStart] has
+ * agreed to it, and [onEnd] says whether it went far or fast enough to go back.
+ */
+private fun Modifier.edgeSwipeBack(
+    enabled: Boolean,
+    rtl: Boolean,
+    onStart: () -> Boolean,
+    onProgress: (Float) -> Unit,
+    onEnd: (commit: Boolean) -> Unit,
+): Modifier = if (!enabled) this else pointerInput(rtl) {
+    val edge = 28.dp.toPx()
+    awaitEachGesture {
+        val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+        val fromEdge = if (rtl) size.width - down.position.x else down.position.x
+        if (fromEdge > edge) return@awaitEachGesture
+        val slop = viewConfiguration.touchSlop
+        val vt = VelocityTracker()
+        vt.addPosition(down.uptimeMillis, down.position)
+        var started = false
+        var f = 0f
+        while (true) {
+            val ev = awaitPointerEvent(PointerEventPass.Initial)
+            val c = ev.changes.firstOrNull { it.id == down.id } ?: break
+            vt.addPosition(c.uptimeMillis, c.position)
+            val dx = (c.position.x - down.position.x) * (if (rtl) -1 else 1)
+            val dy = c.position.y - down.position.y
+            if (!started) {
+                if (!c.pressed) return@awaitEachGesture
+                if (abs(dy) > slop && abs(dy) > abs(dx)) return@awaitEachGesture
+                if (dx > slop) {
+                    if (!onStart()) return@awaitEachGesture
+                    started = true
+                } else continue
+            }
+            f = (dx / size.width).coerceIn(0f, 1f)
+            c.consume()
+            if (!c.pressed) break
+            onProgress(f)
+        }
+        if (!started) return@awaitEachGesture
+        val vx = vt.calculateVelocity().x * (if (rtl) -1 else 1) / density
+        onEnd(f > 0.4f || (vx > 450f && f > 0.03f))
+    }
+}

@@ -5,6 +5,10 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -43,6 +47,16 @@ object MenuAnchor {
     }
 
     private const val FRESH_NANOS = 3_000_000_000L
+
+    /**
+     * A menu that is drawing its trigger (a Liquid Glass menu morphs out of the
+     * button itself): the button whose bounds are [Handoff.bounds] hides by
+     * [Handoff.alpha] and rides [Handoff.offset] (dp) while it does, so it is
+     * the button that becomes the menu rather than a menu laid over it.
+     */
+    class Handoff(val bounds: Rect, val alpha: () -> Float, val offset: () -> Offset)
+
+    var handoff: Handoff? by mutableStateOf(null)
 }
 
 /**
@@ -55,6 +69,14 @@ fun Modifier.menuAnchor(): Modifier {
     val anchor = remember { AnchorCoordinates() }
     return this
         .onPlaced { anchor.coordinates = it }
+        .graphicsLayer {
+            val h = MenuAnchor.handoff ?: return@graphicsLayer
+            val c = anchor.coordinates?.takeIf { it.isAttached } ?: return@graphicsLayer
+            if ((c.boundsInWindow().center - h.bounds.center).getDistance() > 6f * density) return@graphicsLayer
+            alpha = h.alpha()
+            val o = h.offset()
+            translationX = o.x * density; translationY = o.y * density
+        }
         .pointerInput(Unit) {
             awaitEachGesture {
                 awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)

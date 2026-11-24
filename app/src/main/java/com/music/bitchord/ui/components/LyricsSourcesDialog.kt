@@ -207,37 +207,32 @@ fun LyricsSourcesDialog(
         }
     }
 
-    if (showPaxSenixKeyDialog) {
-        var input by remember(paxSenixApiKey) { mutableStateOf(paxSenixApiKey) }
-        AlertDialog(
-            onDismissRequest = { showPaxSenixKeyDialog = false },
-            title = { Text(stringResource(R.string.paxsenix_api_key)) },
-            text = {
-                OutlinedTextField(
-                    value = input,
-                    onValueChange = { input = it },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Done,
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    AppSettings.setPaxSenixApiKey(input)
-                    showPaxSenixKeyDialog = false
-                }) { Text(stringResource(R.string.save)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showPaxSenixKeyDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
-        )
-    }
+    var input by remember(paxSenixApiKey, showPaxSenixKeyDialog) { mutableStateOf(paxSenixApiKey) }
+    AppAlert(
+        visible = showPaxSenixKeyDialog,
+        onDismiss = { showPaxSenixKeyDialog = false },
+        title = stringResource(R.string.paxsenix_api_key),
+        buttons = listOf(
+            AppAlertButton(stringResource(R.string.cancel), role = AppAlertRole.Cancel),
+            AppAlertButton(stringResource(R.string.save), { AppSettings.setPaxSenixApiKey(input) }),
+        ),
+        glassContent = {
+            com.benitbuhner.liquidglass.GlassAlertTextField(input, { input = it }, stringResource(R.string.paxsenix_api_key), secure = true)
+        },
+        materialText = {
+            OutlinedTextField(
+                value = input,
+                onValueChange = { input = it },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+    )
 }
 
 /** The PaxSenix key: its name, and under it whether one is set. */

@@ -1,5 +1,8 @@
 package com.music.bitchord.ui.components
 
+import androidx.compose.material.icons.rounded.MoreHoriz
+import androidx.compose.material.icons.Icons
+import androidx.compose.runtime.DisposableEffect
 import android.provider.Settings
 import com.music.bitchord.ui.player.PlayerBackHandler
 import com.music.bitchord.ui.player.additiveChrome
@@ -450,6 +453,8 @@ fun <T : Any> IosMenuPopover(
      * back into it, the iOS 26 menu morph, instead of the frosted slab.
      */
     glass: GlasseBackdrop? = null,
+    /** The glyph of the button that opened it: the glass morph draws it on its head as the button turns into the menu. */
+    triggerIcon: ImageVector? = Icons.Rounded.MoreHoriz,
     content: @Composable (T) -> Unit,
 ) {
     var last by remember { mutableStateOf<Pair<T, Rect?>?>(null) }
@@ -471,7 +476,7 @@ fun <T : Any> IosMenuPopover(
     val reduceMotion = appReduceAnimation || systemAnimationsOff
 
     if (glass != null && glassMenusOn(reduceMotion)) {
-        GlassMenuPanel(menuItem, menuAnchor, open, onDismiss, glass, onGone = { last = null }, content = content)
+        GlassMenuPanel(menuItem, menuAnchor, open, onDismiss, glass, triggerIcon, onGone = { last = null }, content = content)
         return
     }
 
@@ -664,11 +669,19 @@ private fun <T : Any> GlassMenuPanel(
     open: Boolean,
     onDismiss: () -> Unit,
     glass: GlasseBackdrop,
+    triggerIcon: ImageVector?,
     onGone: () -> Unit,
     content: @Composable (T) -> Unit,
 ) {
     PlayerBackHandler(enabled = open, onBack = onDismiss)
     val state = remember { GlassMenuPopoverState() }
+    // The button it opened from hides while the menu draws it (see [menuAnchor]): the button turns into the
+    // menu and the menu back into the button, rather than a menu growing over a button that stays put.
+    if (anchor != null && triggerIcon != null) DisposableEffect(state, anchor) {
+        val h = MenuAnchor.Handoff(anchor, { state.triggerAlpha }, { state.triggerOffset })
+        MenuAnchor.handoff = h
+        onDispose { if (MenuAnchor.handoff === h) MenuAnchor.handoff = null }
+    }
     val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val scrim by animateFloatAsState(if (open) 1f else 0f, tween(if (open) 220 else 260), label = "menuScrim")
     val closed = !open && !state.visible
@@ -703,6 +716,7 @@ private fun <T : Any> GlassMenuPanel(
             state = state,
             width = IosMenuWidth,
             contentKey = item,
+            trigger = triggerIcon?.let { icon -> { Icon(icon, null, Modifier.size(22.dp)) } },
         ) {
             // The frosted panels set this through their Surface; glass has none, so rows that take the
             // ambient colour would otherwise come out black on the dark material.

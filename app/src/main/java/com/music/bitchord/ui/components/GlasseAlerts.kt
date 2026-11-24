@@ -65,3 +65,122 @@ fun AppGlassAlert(
 }
 
 private const val CLOSE_SECONDS = 0.34
+
+/** One button of an [AppAlert]. */
+data class AppAlertButton(
+    val label: String,
+    val onClick: () -> Unit = {},
+    val role: AppAlertRole = AppAlertRole.Default,
+    val enabled: Boolean = true,
+    /** false: the alert stays up after it (a sign-in that may fail and say so) */
+    val dismisses: Boolean = true,
+)
+
+enum class AppAlertRole { Default, Cancel, Destructive }
+
+/**
+ * An alert that is Glassé's [GlassAlert] while Liquid Glass is on and the
+ * app's original Material dialog otherwise, from one description: [visible]
+ * drives it either way, so the glass one can animate out. [glassContent] /
+ * [materialText] hold what an alert asks for beyond its message (text fields),
+ * in each design's own controls.
+ */
+@Composable
+fun AppAlert(
+    visible: Boolean,
+    onDismiss: () -> Unit,
+    title: String,
+    message: String? = null,
+    buttons: List<AppAlertButton>,
+    glassContent: (@Composable () -> Unit)? = null,
+    materialText: (@Composable () -> Unit)? = null,
+) {
+    if (glasseAlertsOn()) {
+        GlassAlert(
+            visible = visible,
+            onDismiss = onDismiss,
+            title = title,
+            message = message,
+            actions = buttons.map { b ->
+                GlassAlertAction(
+                    b.label,
+                    when (b.role) {
+                        AppAlertRole.Cancel -> com.benitbuhner.liquidglass.AlertActionStyle.Cancel
+                        AppAlertRole.Destructive -> com.benitbuhner.liquidglass.AlertActionStyle.Destructive
+                        AppAlertRole.Default -> com.benitbuhner.liquidglass.AlertActionStyle.Prominent
+                    },
+                    b.onClick,
+                    enabled = b.enabled,
+                    dismisses = b.dismisses,
+                )
+            }.sortedBy { if (it.style == com.benitbuhner.liquidglass.AlertActionStyle.Cancel) 0 else 1 },
+            content = glassContent,
+        )
+        return
+    }
+    if (!visible) return
+    val confirm = buttons.lastOrNull { it.role != AppAlertRole.Cancel }
+    val cancel = buttons.firstOrNull { it.role == AppAlertRole.Cancel }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { androidx.compose.material3.Text(title) },
+        text = materialText ?: message?.let { m -> { androidx.compose.material3.Text(m) } },
+        confirmButton = {
+            if (confirm != null) androidx.compose.material3.TextButton(
+                onClick = { confirm.onClick(); if (confirm.dismisses) onDismiss() },
+                enabled = confirm.enabled,
+            ) {
+                androidx.compose.material3.Text(
+                    confirm.label,
+                    color = if (confirm.role == AppAlertRole.Destructive) androidx.compose.material3.MaterialTheme.colorScheme.error else androidx.compose.ui.graphics.Color.Unspecified,
+                )
+            }
+        },
+        dismissButton = cancel?.let { c ->
+            {
+                androidx.compose.material3.TextButton(onClick = { c.onClick(); onDismiss() }, enabled = c.enabled) {
+                    androidx.compose.material3.Text(c.label)
+                }
+            }
+        },
+    )
+}
+
+/**
+ * A sheet that is Glassé's [com.benitbuhner.liquidglass.GlassSheet] while
+ * Liquid Glass is on and the app's original Material bottom sheet otherwise.
+ * [item] non-null shows it; the last one is kept so the glass sheet can slide
+ * away with its content after the caller has let go of it.
+ */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+fun <T : Any> AppSheet(
+    item: T?,
+    onDismiss: () -> Unit,
+    containerColor: androidx.compose.ui.graphics.Color,
+    skipPartiallyExpanded: Boolean = false,
+    sheetState: androidx.compose.material3.SheetState? = null,
+    content: @Composable androidx.compose.foundation.layout.ColumnScope.(T) -> Unit,
+) {
+    if (glasseAlertsOn()) {
+        var last by remember { mutableStateOf<T?>(null) }
+        if (item != null && item != last) androidx.compose.runtime.SideEffect { last = item }
+        val shown = item ?: last ?: return
+        com.benitbuhner.liquidglass.GlassSheet(
+            visible = item != null,
+            onDismiss = onDismiss,
+            detents = if (skipPartiallyExpanded) listOf(0.94f) else listOf(0.55f, 0.94f),
+        ) {
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.material3.LocalContentColor provides com.benitbuhner.liquidglass.LocalGlassTheme.current.label,
+            ) { content(shown) }
+        }
+        return
+    }
+    if (item == null) return
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState ?: androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = skipPartiallyExpanded),
+        containerColor = containerColor,
+    ) { content(item) }
+}
