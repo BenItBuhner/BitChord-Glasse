@@ -251,6 +251,7 @@ private const val STILL_WAIT_MS = 150L
 /** The break between groups: a hairline inset from the panel's edges, with air either side. */
 @Composable
 fun IosMenuSeparator(colors: IosMenuColors = iosMenuColors()) {
+    LocalMenuCollector.current?.let { it.Item(label = null); return }
     Box(
         Modifier
             .fillMaxWidth()
@@ -289,6 +290,7 @@ fun RowScope.IosMenuQuickAction(
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
+    LocalMenuCollector.current?.let { it.Item(label, icon, onClick.takeIf { enabled }); return }
     val colors = iosMenuColors()
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
@@ -345,6 +347,17 @@ fun IosMenuRow(
     enabled: Boolean = true,
     trailing: (@Composable () -> Unit)? = null,
 ) {
+    LocalMenuCollector.current?.let { c ->
+        val error = MaterialTheme.colorScheme.error
+        c.Item(
+            label = if (value != null) "$label  ·  $value" else label,
+            icon = icon,
+            onClick = onClick.takeIf { enabled },
+            subtitle = description,
+            destructive = labelColor == error || iconTint == error,
+        )
+        return
+    }
     val colors = iosMenuColors()
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
@@ -674,6 +687,17 @@ private fun <T : Any> GlassMenuPanel(
     content: @Composable (T) -> Unit,
 ) {
     PlayerBackHandler(enabled = open, onBack = onDismiss)
+    // The rows go to Glassé's own menu (see [MenuCollector]); only a page that is not rows keeps the popover.
+    val collector = remember { MenuCollector() }
+    Box(Modifier.outOfSight()) {
+        CompositionLocalProvider(LocalMenuCollector provides collector) {
+            Column { content(item) }
+        }
+    }
+    if (collector.custom == 0) {
+        GlasseRowsMenu(collector, anchor, open, onDismiss, glass, triggerIcon, onGone)
+        return
+    }
     val state = remember { GlassMenuPopoverState() }
     // The button it opened from hides while the menu draws it (see [menuAnchor]): the button turns into the
     // menu and the menu back into the button, rather than a menu growing over a button that stays put.
@@ -724,5 +748,61 @@ private fun <T : Any> GlassMenuPanel(
                 Column(Modifier.padding(vertical = 8.dp)) { content(item) }
             }
         }
+    }
+}
+
+/** The menu as Glassé's GlassMenu: its rows, its highlight, drag to select, stretch and morph out of [anchor]. */
+@Composable
+private fun GlasseRowsMenu(
+    collector: MenuCollector,
+    anchor: Rect?,
+    open: Boolean,
+    onDismiss: () -> Unit,
+    glass: GlasseBackdrop,
+    triggerIcon: ImageVector?,
+    onGone: () -> Unit,
+) {
+    val trigger = com.benitbuhner.liquidglass.rememberGlassMenuTrigger()
+    if (anchor != null && triggerIcon != null) DisposableEffect(trigger, anchor) {
+        val h = MenuAnchor.Handoff(anchor, { trigger.alpha }, { trigger.offset })
+        MenuAnchor.handoff = h
+        onDispose { if (MenuAnchor.handoff === h) MenuAnchor.handoff = null }
+    }
+    val wanted = open && collector.ready
+    var shown by remember { mutableStateOf(false) }
+    if (wanted) shown = true
+    val gone = shown && !open && !trigger.visible
+    LaunchedEffect(gone) { if (gone) onGone() }
+    if (!open && !shown) { LaunchedEffect(Unit) { onGone() }; return }
+    // Drawn where Glassé draws its own menus: the host's overlay layer, refracting the whole screen under it
+    val host = com.benitbuhner.liquidglass.LocalGlassHost.current
+    val items = collector.items
+    if (host == null) return
+    com.benitbuhner.liquidglass.GlassOverlay {
+    var inRoot by remember { mutableStateOf(Offset.Zero) }
+    var inWindow by remember { mutableStateOf(Offset.Zero) }
+    BoxWithConstraints(
+        Modifier
+            .fillMaxSize()
+            .onGloballyPositioned { inRoot = it.positionInRoot(); inWindow = it.positionInWindow() }
+            .containSheetGestures(),
+    ) {
+        val density = LocalDensity.current
+        val at = anchor?.translate(inRoot - inWindow) ?: with(density) {
+            val size = 44.dp.toPx()
+            Rect(Offset(constraints.maxWidth - 14.dp.toPx() - size, constraints.maxHeight - 120.dp.toPx()), Size(size, size))
+                .translate(inRoot)
+        }
+        com.benitbuhner.liquidglass.GlassMenu(
+            backdrop = host.screen,
+            expanded = wanted,
+            onDismiss = onDismiss,
+            anchor = at,
+            items = items,
+            anchorIcon = triggerIcon,
+            width = IosMenuWidth,
+            trigger = trigger,
+        )
+    }
     }
 }

@@ -1686,12 +1686,16 @@ private fun ActionPill(
     // says so.
     val haptics = rememberHaptics()
     val content = if (filled) Color.Black else MaterialTheme.colorScheme.onSurface
+    val glass = com.music.bitchord.ui.components.LocalLiquidGlassEnabled.current
     Row(
         modifier = modifier
             .height(size)
-            .clip(CircleShape)
+            .then(if (glass) Modifier else Modifier.clip(CircleShape))
             .then(
-                if (filled) {
+                if (filled && glass) {
+                    // Play as Glassé glass filled white: it presses and stretches like the circles beside it
+                    Modifier.glassControl(CircleShape, fill = Color.White)
+                } else if (filled) {
                     Modifier.background(Color.White)
                 } else {
                     Modifier.glassControl(
@@ -1701,7 +1705,7 @@ private fun ActionPill(
                     )
                 },
             )
-            .clickable {
+            .clickable(interactionSource = null, indication = if (glass) null else androidx.compose.material3.ripple()) {
                 haptics.play(Haptic.Resume)
                 onClick()
             }
@@ -1797,11 +1801,13 @@ private fun CircleIconButton(
     enabled: Boolean = true,
 ) {
     val haptics = rememberHaptics()
+    // Liquid Glass: unclipped, so the glass can stretch past its circle toward the finger (Glassé's touch)
+    val glass = com.music.bitchord.ui.components.LocalLiquidGlassEnabled.current
     Box(
         modifier = Modifier
             .size(size)
             .alpha(if (enabled) 1f else DISABLED_ACTION_ALPHA)
-            .clip(CircleShape)
+            .then(if (glass) Modifier else Modifier.clip(CircleShape))
             // The floating bars' Glassé glass, with Liquid Glass on: it bends
             // the artwork's colour behind it; the flat fill and edge off.
             .glassControl(
@@ -1809,10 +1815,15 @@ private fun CircleIconButton(
                 fill = Color.White.copy(alpha = LIGHT_FILL_ALPHA),
                 edge = Color.White.copy(alpha = TOP_RELEASE_EDGE_ALPHA),
             )
-            .clickable(enabled = enabled) {
-                haptics.play(haptic)
-                onClick()
-            },
+            .then(
+                if (glass) Modifier.clickable(enabled = enabled, interactionSource = null, indication = null) {
+                    haptics.play(haptic)
+                    onClick()
+                } else Modifier.clickable(enabled = enabled) {
+                    haptics.play(haptic)
+                    onClick()
+                },
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Icon(

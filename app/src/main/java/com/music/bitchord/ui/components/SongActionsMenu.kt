@@ -695,6 +695,7 @@ private fun SleepTimerPicker(palette: ArtworkPalette, onBack: () -> Unit) {
  */
 @Composable
 private fun SleepTimerHeader(title: String, subtitle: String, onBack: () -> Unit) {
+    LocalMenuCollector.current?.let { it.Item(title, SfIcons.ArrowBack, onBack, subtitle = subtitle); it.Item(null); return }
     val colors = iosMenuColors()
     Row(
         modifier = Modifier
@@ -743,6 +744,7 @@ private fun CustomSleepTimerPage(
     onBack: () -> Unit,
     onStart: (Int) -> Unit,
 ) {
+    LocalMenuCollector.current?.Custom()
     var minutes by remember { mutableIntStateOf(initialMinutes) }
     val foreground = MaterialTheme.colorScheme.onBackground
     val readout = iosMenuColors().label

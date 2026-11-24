@@ -387,7 +387,7 @@ fun TopBarAction(
     content: @Composable () -> Unit,
 ) {
     val glass = LocalTopBarGlass.current
-    val anchor = if (menuTrigger) Modifier.menuAnchor() else Modifier
+    val anchor = if (menuTrigger) Modifier.menuAnchor(onClick) else Modifier
     if (glass != null) {
         GlassButton(onClick, glass, modifier.then(anchor).size(TOP_CONTROL_SIZE), contentPadding = PaddingValues(0.dp)) {
             Box(Modifier.size(TOP_CONTROL_SIZE), contentAlignment = Alignment.Center) { content() }
@@ -612,10 +612,36 @@ fun TopBarAccountButton(
     onClick: () -> Unit,
     onSwipeProfile: ((forward: Boolean) -> Boolean)? = null,
     modifier: Modifier = Modifier,
+    /** Liquid Glass: the photo is the trigger of Glassé's own menu holding these rows (the account switcher). */
+    menuItems: List<com.benitbuhner.liquidglass.GlassMenuItem>? = null,
+    onMenuOpen: () -> Unit = {},
 ) {
     val translation = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
     val glass = LocalTopBarGlass.current
+    if (glass != null && menuItems != null) {
+        val photo = account?.thumbnailUrl
+        com.benitbuhner.liquidglass.GlassMenuButton(
+            items = menuItems,
+            backdrop = glass,
+            modifier = modifier
+                .graphicsLayer { translationY = translation.value }
+                .profileSwipe(onSwipeProfile, translation, scope),
+            icon = Icons.Rounded.Person,
+            contentDescription = stringResource(R.string.switch_account),
+            size = TOP_CONTROL_SIZE,
+            onOpen = onMenuOpen,
+            face = {
+                if (photo != null) AsyncImage(
+                    model = photo,
+                    contentDescription = stringResource(R.string.switch_account),
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.size(TOP_CONTROL_SIZE - 6.dp).clip(CircleShape),
+                ) else Icon(Icons.Rounded.Person, stringResource(R.string.switch_account), Modifier.size(24.dp))
+            },
+        )
+        return
+    }
     if (glass != null) {
         // Liquid Glass: the photo is the face of a Glassé button (as Apple Music's is), so it presses,
         // follows and stretches with the glass around it.

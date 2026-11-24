@@ -158,6 +158,7 @@ fun BrowseActionsMenu(
 
     val playlist = target.playlist
     if (renaming && playlist != null && onRename != null) {
+        LocalMenuCollector.current?.Custom()
         RenamePlaylistForm(
             playlist = playlist,
             onBack = { renaming = false },

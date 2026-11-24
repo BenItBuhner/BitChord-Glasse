@@ -666,7 +666,7 @@ fun RowMoreButton(
             .leftOutOfHeldPicture()
             .hangIntoGutter(ROW_MORE_OUTSET)
             .size(36.dp)
-            .menuAnchor()
+            .menuAnchor(onClick)
             .clip(CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,

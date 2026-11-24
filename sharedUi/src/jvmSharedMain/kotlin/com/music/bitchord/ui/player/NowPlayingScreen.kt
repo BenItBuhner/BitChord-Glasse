@@ -4311,7 +4311,7 @@ fun NowPlayingScreen(
                                     } else {
                                         Haptic.Tap
                                     },
-                                    modifier = Modifier.menuAnchor(),
+                                    modifier = Modifier.menuAnchor(onOpenMenu.takeIf { showRevertCue || !lyricsShareGlyphVisible }),
                                 )
                             }
                         }
