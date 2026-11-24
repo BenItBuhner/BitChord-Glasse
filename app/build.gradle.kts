@@ -296,7 +296,7 @@ dependencies {
     implementation(project(":shared"))
     implementation(project(":sharedUi"))
     // Liquid Glass: Glassé's Compose library (github.com/BenItBuhner/Glasse), from JitPack.
-    implementation("com.github.BenItBuhner.Glasse:liquidglass:34c20d7f4b")
+    implementation("com.github.BenItBuhner.Glasse:liquidglass:d49c94bb0e")
 
     // ---- Compose (Material 3) ----
     val composeBom = platform("androidx.compose:compose-bom:2024.12.01")

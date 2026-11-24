@@ -177,3 +177,43 @@ fun AccountProfileSelector(
         Spacer(Modifier.width(12.dp)); Text(label)
     }
 }
+
+/**
+ * The account switcher as Glassé menu rows, for the account photo's own menu while Liquid Glass is on: each
+ * Google login's email as a header over its profiles (the active one ticked), then Add account, Settings and
+ * Sign out, as the Glassé Music demo's account menu.
+ */
+@Composable
+fun accountMenuItems(
+    accounts: List<GoogleAccountSession>,
+    activeAccountId: String?,
+    activeProfileId: String?,
+    signedIn: Boolean,
+    onSelect: (GoogleAccountSession, YouTubeProfile) -> Unit,
+    onAddAccount: () -> Unit,
+    onRemoveAccount: (GoogleAccountSession) -> Unit,
+    onOpenSettings: () -> Unit,
+): List<com.benitbuhner.liquidglass.GlassMenuItem> {
+    val accountsLabel = stringResource(R.string.accounts)
+    val add = stringResource(R.string.add_account)
+    val settings = stringResource(R.string.settings)
+    val signOut = stringResource(R.string.sign_out)
+    return buildList {
+        accounts.forEach { account ->
+            add(com.benitbuhner.liquidglass.GlassMenuItem.header(account.email.ifBlank { account.name.ifBlank { accountsLabel } }, separatorBefore = isNotEmpty()))
+            account.profiles.forEach { profile ->
+                val active = account.accountId == activeAccountId && profile.profileId == activeProfileId
+                add(com.benitbuhner.liquidglass.GlassMenuItem(
+                    label = profile.name, checked = active, subtitle = profile.handle.ifBlank { null },
+                    onSelect = { onSelect(account, profile) },
+                ))
+            }
+        }
+        add(com.benitbuhner.liquidglass.GlassMenuItem(add, icon = SfIcons.Add, separatorBefore = isNotEmpty(), onSelect = onAddAccount))
+        add(com.benitbuhner.liquidglass.GlassMenuItem(settings, icon = SfIcons.Settings, onSelect = onOpenSettings))
+        val active = accounts.firstOrNull { it.accountId == activeAccountId }
+        if (signedIn && active != null) add(com.benitbuhner.liquidglass.GlassMenuItem(
+            signOut, icon = SfIcons.Close, destructive = true, separatorBefore = true, onSelect = { onRemoveAccount(active) },
+        ))
+    }
+}

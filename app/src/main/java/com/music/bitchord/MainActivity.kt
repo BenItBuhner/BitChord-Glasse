@@ -10,7 +10,10 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.util.VelocityTracker
+import com.benitbuhner.liquidglass.glassMenuHold
 import com.benitbuhner.liquidglass.GlassHost
+import com.music.bitchord.ui.components.LocalMenuCollector
+import com.music.bitchord.ui.components.Item
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -83,6 +86,7 @@ import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowUpward
+import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.CloudOff
@@ -182,6 +186,7 @@ import com.music.bitchord.ui.AddonBlockedAlert
 import com.music.bitchord.data.settings.LibrarySort
 import com.music.bitchord.data.settings.ThemeMode
 import com.music.bitchord.ui.components.AccountProfileSelector
+import com.music.bitchord.ui.components.accountMenuItems
 import com.music.bitchord.ui.components.DacVolumeHud
 import com.music.bitchord.ui.components.DacVolumeKeys
 import com.music.bitchord.ui.components.LocalPlayingBarsMotion
@@ -514,8 +519,12 @@ class MainActivity : AppCompatActivity() {
                 // Everything under the menus and alerts: the page, its bars, the mini player.
                 val screenGlass = rememberGlasseBackdrop()
                 CompositionLocalProvider(
-                    LocalOverscrollFactory provides iosOverscrollFactory,
+                    // Liquid Glass: Glassé's own scroll bounce (the kit's UIScrollView rubber band) for every list.
+                    LocalOverscrollFactory provides
+                        if (liquidGlassEnabled) com.benitbuhner.liquidglass.GlassBounceOverscrollFactory else iosOverscrollFactory,
                     LocalLiquidGlassEnabled provides liquidGlassEnabled,
+                    // Liquid Glass: a ⋮ / ⋯ opens its menu on a hold or a drag too, and the finger picks a row (Glassé)
+                    com.music.bitchord.ui.components.LocalMenuHold provides if (liquidGlassEnabled) glassMenuHold else null,
                     LocalAppBackdrop provides appBackdrop,
                     LocalGlasseBackdrop provides glasseBackdrop,
                     LocalScreenGlass provides screenGlass,
@@ -528,6 +537,8 @@ class MainActivity : AppCompatActivity() {
                     ),
                 ) {
                 // Glassé's host: the overlay layer its alerts, menus and sheets draw in.
+                // Liquid Glass sets the app in Glassé's type (Inter, as the kit draws); off keeps the app's own.
+                GlasseType(liquidGlassEnabled) {
                 GlassHost {
                 // The window's width, measured rather than asked for.
                 //
@@ -547,6 +558,7 @@ class MainActivity : AppCompatActivity() {
                         windowHeight = maxHeight,
                         appBackdrop = appBackdrop,
                     )
+                }
                 }
                 }
                 }
@@ -3080,87 +3092,9 @@ private fun BitChordApp(
                     detail != null -> AppDestination.Release(detail.browseId)
                     else -> AppDestination.Tab(selectedTab)
                 }
-                val pages = rememberPageSwitcher(pageTarget, navigator.entries, detailStack.map { it.browseId }, glassActive)
-                val pageTransition = rememberTransition(pages.seek, label = "content")
-                pageTransition.AnimatedContent(
-                    // A route's entry is copied when the release pages under it
-                    // change, which is not a different page.
-                    contentKey = { it.key },
-                    // Tabs swap outright; everything else crossfades.
-                    //
-                    // A tab is not a place you travel to — the bar is the whole
-                    // navigation and it carries its own movement — so a fade
-                    // between two of them only ever reads as a stutter. And it
-                    // cannot read as anything else: neither page paints a
-                    // background, so a crossfade dissolves both through to the
-                    // window and the switch dips through a dimmer frame in the
-                    // middle. Pushing a page or raising Settings is a real
-                    // change of context and keeps the fade.
-                    //
-                    // "Show all" swapping with the Library tab underneath it is
-                    // the same case as a tab swap, not a pushed page: it's still
-                    // that tab, just laid out as a grid instead of a row, sharing
-                    // its background rather than painting its own — so this one
-                    // pair gets the tab's no-fade swap too, in both directions, or
-                    // the dip through a dim frame shows up on every hold of a
-                    // card there. A card opened *from* the grid is a real page
-                    // and keeps the fade, same as one opened from the row.
-                    transitionSpec = {
-                        val initial = initialState
-                        val target = targetState
-                        val tabSwap = initial is AppDestination.Tab && target is AppDestination.Tab
-                        val libraryTab = AppDestination.Tab(TAB_LIBRARY)
-                        fun AppDestination.isShowAll() =
-                            (this as? AppDestination.Route)?.entry?.route is AppRoute.LibraryShowAll
-                        val libraryShowAllSwap = (initial.isShowAll() && target == libraryTab) ||
-                            (target.isShowAll() && initial == libraryTab)
-                        if (tabSwap || libraryShowAllSwap) {
-                            EnterTransition.None togetherWith ExitTransition.None
-                        } else if (glassActive) {
-                            // Liquid Glass: iOS's push and pop (see [PageSwitcher.slide]).
-                            pages.slide(initial, target)
-                        } else {
-                            fadeIn(tween(180)) togetherWith fadeOut(tween(180))
-                        }
-                    },
-                    modifier = Modifier
-                        .hazeSource(hazeState)
-                        .then(
-                            if (glassActive) {
-                                Modifier
-                                    // Not under "reduce dynamic blur": nothing
-                                    // samples the layer then, and recording a
-                                    // whole page into one for no reader is the
-                                    // cost that setting exists to remove.
-                                    .then(
-                                        if (glassSamplesBackdrop) {
-                                            Modifier.pageGlassSource(appBackdrop)
-                                        } else {
-                                            Modifier
-                                        },
-                                    )
-                                    // Every page's scroll passes through here, so
-                                    // the glass bar collapses on all of them
-                                    // without each one having to know about it.
-                                    .nestedScroll(navBarScroll)
-                                    // iOS's swipe back from the leading edge: the page follows the
-                                    // finger, the one under it showing, and goes on release past a
-                                    // third of the way (or flung), else settles back.
-                                    .pageSwipeBack(
-                                        pages,
-                                        enabled = navigator.entries.isNotEmpty() || detailStack.isNotEmpty(),
-                                        under = { destinationUnder(navigator.entries, detailStack.map { it.browseId }, selectedTab) },
-                                        depthOf = { pageDepth(it, navigator.entries, detailStack.map { d -> d.browseId }) },
-                                        goBack = goBack,
-                                    )
-                            } else {
-                                Modifier
-                            },
-                        ),
-                ) { destination ->
+                val pageSlot: @Composable (AppDestination, Boolean, Boolean) -> Unit = { destination, sliding, leaving ->
                     // Liquid Glass slides pages over each other (iOS): while they move each is opaque, as a
                     // page is there, so the one underneath shows only where the top one has moved off it.
-                    val sliding = glassActive && transition.isRunning
                     Box(Modifier.fillMaxSize().then(if (sliding) Modifier.background(MaterialTheme.colorScheme.background) else Modifier)) {
                     // Every branch below reads `destination` rather than the
                     // stack that produced it. The two are the same thing only
@@ -3998,7 +3932,7 @@ private fun BitChordApp(
                     // The playing bars hold still with the player up, the app in
                     // the background, or this page on its way out: each frame of
                     // them redraws the page under the glass, for nobody.
-                    val barsMotion = artworkMotion && transition.targetState == EnterExitState.Visible
+                    val barsMotion = artworkMotion && !leaving
                     CompositionLocalProvider(LocalPlayingBarsMotion provides barsMotion) {
                         if (destination is AppDestination.Tab) {
                             pageContent()
@@ -4008,6 +3942,102 @@ private fun BitChordApp(
                         }
                     }
                     }
+                }
+                if (glassActive) {
+                    // Liquid Glass: Glassé's navigation stack, iOS's push, pop and swipe back (from anywhere on the
+                    // page, and Android's own back gesture as predictive back), the same one every Glassé app uses.
+                    val detailIds = detailStack.map { it.browseId }
+                    com.benitbuhner.liquidglass.GlassStack(
+                        entries = destinationStack(pageTarget, navigator.entries, detailIds, selectedTab),
+                        onBack = goBack,
+                        key = { it.key },
+                        // "Show all" is the Library tab laid out as a grid, not a page pushed over it
+                        instant = { (it as? AppDestination.Route)?.entry?.route is AppRoute.LibraryShowAll },
+                        background = MaterialTheme.colorScheme.background,
+                        modifier = Modifier
+                            .hazeSource(hazeState)
+                            .then(if (glassSamplesBackdrop) Modifier.pageGlassSource(appBackdrop) else Modifier)
+                            .nestedScroll(navBarScroll),
+                    ) { destination -> pageSlot(destination, false, destination.key != pageTarget.key) }
+                } else {
+                val pages = rememberPageSwitcher(pageTarget, navigator.entries, detailStack.map { it.browseId }, glassActive)
+                val pageTransition = rememberTransition(pages.seek, label = "content")
+                pageTransition.AnimatedContent(
+                    // A route's entry is copied when the release pages under it
+                    // change, which is not a different page.
+                    contentKey = { it.key },
+                    // Tabs swap outright; everything else crossfades.
+                    //
+                    // A tab is not a place you travel to — the bar is the whole
+                    // navigation and it carries its own movement — so a fade
+                    // between two of them only ever reads as a stutter. And it
+                    // cannot read as anything else: neither page paints a
+                    // background, so a crossfade dissolves both through to the
+                    // window and the switch dips through a dimmer frame in the
+                    // middle. Pushing a page or raising Settings is a real
+                    // change of context and keeps the fade.
+                    //
+                    // "Show all" swapping with the Library tab underneath it is
+                    // the same case as a tab swap, not a pushed page: it's still
+                    // that tab, just laid out as a grid instead of a row, sharing
+                    // its background rather than painting its own — so this one
+                    // pair gets the tab's no-fade swap too, in both directions, or
+                    // the dip through a dim frame shows up on every hold of a
+                    // card there. A card opened *from* the grid is a real page
+                    // and keeps the fade, same as one opened from the row.
+                    transitionSpec = {
+                        val initial = initialState
+                        val target = targetState
+                        val tabSwap = initial is AppDestination.Tab && target is AppDestination.Tab
+                        val libraryTab = AppDestination.Tab(TAB_LIBRARY)
+                        fun AppDestination.isShowAll() =
+                            (this as? AppDestination.Route)?.entry?.route is AppRoute.LibraryShowAll
+                        val libraryShowAllSwap = (initial.isShowAll() && target == libraryTab) ||
+                            (target.isShowAll() && initial == libraryTab)
+                        if (tabSwap || libraryShowAllSwap) {
+                            EnterTransition.None togetherWith ExitTransition.None
+                        } else if (glassActive) {
+                            // Liquid Glass: iOS's push and pop (see [PageSwitcher.slide]).
+                            pages.slide(initial, target)
+                        } else {
+                            fadeIn(tween(180)) togetherWith fadeOut(tween(180))
+                        }
+                    },
+                    modifier = Modifier
+                        .hazeSource(hazeState)
+                        .then(
+                            if (glassActive) {
+                                Modifier
+                                    // Not under "reduce dynamic blur": nothing
+                                    // samples the layer then, and recording a
+                                    // whole page into one for no reader is the
+                                    // cost that setting exists to remove.
+                                    .then(
+                                        if (glassSamplesBackdrop) {
+                                            Modifier.pageGlassSource(appBackdrop)
+                                        } else {
+                                            Modifier
+                                        },
+                                    )
+                                    // Every page's scroll passes through here, so
+                                    // the glass bar collapses on all of them
+                                    // without each one having to know about it.
+                                    .nestedScroll(navBarScroll)
+                                    // iOS's swipe back from the leading edge: the page follows the
+                                    // finger, the one under it showing, and goes on release past a
+                                    // third of the way (or flung), else settles back.
+                                    .pageSwipeBack(
+                                        pages,
+                                        enabled = navigator.entries.isNotEmpty() || detailStack.isNotEmpty(),
+                                        under = { destinationUnder(navigator.entries, detailStack.map { it.browseId }, selectedTab) },
+                                        depthOf = { pageDepth(it, navigator.entries, detailStack.map { d -> d.browseId }) },
+                                        goBack = goBack,
+                                    )
+                            } else {
+                                Modifier
+                            },
+                        ),
+                ) { destination -> pageSlot(destination, false, transition.targetState != EnterExitState.Visible) }
                 }
                 }
 
@@ -4318,13 +4348,17 @@ private fun BitChordApp(
                                 val releaseSongs = (detail.songs as? UiState.Success)?.data.orEmpty()
                                 if (releaseSongs.isNotEmpty()) {
                                     TopBarAction(onClick = { detailSearching = !detailSearching }) {
-                                        Icon(
-                                            if (detailSearching) Icons.Rounded.Close else BitChordIcons.Search,
-                                            contentDescription = stringResource(
-                                                if (detailSearching) R.string.close_search else R.string.search_this_list,
-                                            ),
-                                            tint = MaterialTheme.colorScheme.onSurface,
-                                        )
+                                        // Glassé's BlurReplace: the magnifier blurs into the ✕ and back, as iOS swaps a bar glyph
+                                        GlyphSwap(detailSearching) { k ->
+                                            val searching = k == true
+                                            Icon(
+                                                if (searching) Icons.Rounded.Close else BitChordIcons.Search,
+                                                contentDescription = stringResource(
+                                                    if (searching) R.string.close_search else R.string.search_this_list,
+                                                ),
+                                                tint = MaterialTheme.colorScheme.onSurface,
+                                            )
+                                        }
                                     }
                                 }
                                 // The menu itself is [FrostedSortMenu], composed
@@ -4427,6 +4461,17 @@ private fun BitChordApp(
                                     } else navigator.push(AppRoute.Settings)
                                 },
                                 onSwipeProfile = { forward -> viewModel.stepProfile(forward) },
+                                menuItems = if (liquidGlassOn()) accountMenuItems(
+                                    accounts = googleAccounts,
+                                    activeAccountId = activeAccountId,
+                                    activeProfileId = activeProfileId,
+                                    signedIn = signedIn,
+                                    onSelect = { selected, profile -> viewModel.selectProfile(selected.accountId, profile.profileId) },
+                                    onAddAccount = { webSession = WebSessionMode.SIGN_IN },
+                                    onRemoveAccount = { selected -> viewModel.removeAccount(selected.accountId) },
+                                    onOpenSettings = { navigator.push(AppRoute.Settings) },
+                                ) else null,
+                                onMenuOpen = { if (signedIn) viewModel.loadChannels() },
                             )
                         }
                     },
@@ -6468,7 +6513,13 @@ private fun FrostedSortMenu(
             animationSpec = tween(durationMillis = 200),
             label = "dateAddedArrow",
         )
-        Row(
+        val collecting = LocalMenuCollector.current
+        if (collecting != null) collecting.Item(
+            stringResource(R.string.sort_date_added_toggle),
+            icon = if (selected == SongSort.DATE_ADDED_ASC) Icons.Rounded.ArrowDownward else Icons.Rounded.ArrowUpward,
+            onClick = onFlipDateDirection,
+            checked = dateActive,
+        ) else Row(
             Modifier
                 .fillMaxWidth()
                 .heightIn(min = 48.dp)
@@ -6549,7 +6600,7 @@ private fun FrostedFolderMenu(
             onClick = onToggleViewType,
             icon = if (grid) BitChordIcons.ListView else BitChordIcons.GridView,
         )
-        HorizontalDivider(
+        LocalMenuCollector.current?.Item(null) ?: HorizontalDivider(
             modifier = Modifier.padding(vertical = 4.dp),
             thickness = 0.5.dp,
             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
@@ -6625,6 +6676,7 @@ private fun FrostedMenuRow(
     onClick: () -> Unit,
     icon: ImageVector? = null,
 ) {
+    LocalMenuCollector.current?.let { it.Item(label, icon, onClick, checked = checked); return }
     Row(
         Modifier
             .fillMaxWidth()
@@ -6992,3 +7044,37 @@ private fun Modifier.edgeSwipeBack(
         onEnd(f > 0.4f || (vx > 450f && f > 0.03f))
     }
 }
+
+/** Glassé's type (Inter) for everything under it while Liquid Glass is on; the app's own type otherwise. */
+@Composable
+private fun GlasseType(on: Boolean, content: @Composable () -> Unit) {
+    if (on) com.benitbuhner.liquidglass.GlassTypeScope(content = content) else content()
+}
+
+@Composable
+private fun liquidGlassOn(): Boolean = com.music.bitchord.ui.components.LocalLiquidGlassEnabled.current
+
+/** The whole back stack under [top], root (the tab) first: [destinationUnder] stepped down to the tab. */
+private fun destinationStack(top: AppDestination, entries: List<RouteEntry>, detailIds: List<String>, tab: Int): List<AppDestination> {
+    val out = ArrayDeque<AppDestination>()
+    out.addFirst(top)
+    var e = entries
+    var d = detailIds
+    while (top !is AppDestination.Tab && out.size < 64) {
+        val u = destinationUnder(e, d, tab) ?: break
+        val t = e.lastOrNull()
+        if (d.size > (t?.detailDepth ?: 0)) d = d.dropLast(1) else e = e.dropLast(1)
+        out.addFirst(u)
+        if (u is AppDestination.Tab) break
+    }
+    if (out.first() !is AppDestination.Tab) out.addFirst(AppDestination.Tab(tab))
+    return out.toList()
+}
+
+/** Liquid Glass: Glassé's BlurReplace between a bar button's two glyphs; off, the plain swap the app always had. */
+@Composable
+private fun GlyphSwap(key: Any, content: @Composable (Any) -> Unit) {
+    if (liquidGlassOn()) com.benitbuhner.liquidglass.BlurReplace(key) { content(it) } else content(key)
+}
+
+private val glassMenuHold: @Composable (() -> Unit) -> Modifier = { open -> Modifier.glassMenuHold(open) }

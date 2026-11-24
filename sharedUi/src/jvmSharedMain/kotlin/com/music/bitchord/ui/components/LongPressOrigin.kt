@@ -114,7 +114,9 @@ fun Modifier.longPressMenuClickable(
     val density = LocalDensity.current
     val layoutDirection = LocalLayoutDirection.current
     val longClick = onLongClick?.let { held ->
-        {
+        hold@{
+            // a hold on the row's own ⋮ is the button's (it opens the menu from itself)
+            if (MenuAnchor.pressed) return@hold
             capture.coordinates?.takeIf { it.isAttached }?.let { coordinates ->
                 // Not clipped to what shows: a card half off the screen is
                 // lifted whole, rather than its whole picture squeezed into the

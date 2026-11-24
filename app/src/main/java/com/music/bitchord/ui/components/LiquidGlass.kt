@@ -49,6 +49,7 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.drawBehind
 import com.music.bitchord.ui.components.backdrop.backdrops.layerBackdrop
 import com.benitbuhner.liquidglass.Backdrop as GlasseBackdrop
+import com.benitbuhner.liquidglass.glassTouch
 
 /** Whether the liquid glass nav bar is turned on — see [AppSettings.liquidGlass]. */
 val LocalLiquidGlassEnabled = staticCompositionLocalOf { false }
@@ -230,6 +231,8 @@ fun Modifier.liquidGlass(
     /** Drawn over the glass in place of the theme's default tint, when set. */
     surfaceTint: Color? = null,
     pressed: () -> Float = NoPress,
+    /** Glassé's touch (press, follow, stretch toward the finger): the glass deforms with it */
+    interaction: com.benitbuhner.liquidglass.GlassInteraction? = null,
 ): Modifier {
     if (!isGlassSupported()) return this
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
@@ -252,7 +255,7 @@ fun Modifier.liquidGlass(
     val export = LocalGlassExport.current
     return then(
         if (export != null) Modifier.onGloballyPositioned { export.layerCoordinates = it } else Modifier,
-    ).exportingLiquidGlass(backdrop, export?.graphicsLayer, style, theme, lift = pressed)
+    ).exportingLiquidGlass(backdrop, export?.graphicsLayer, style, theme, lift = pressed, interaction = interaction)
 }
 
 private val NoPress: () -> Float = { 0f }
@@ -297,7 +300,10 @@ fun Modifier.glassControl(
     val on = LocalLiquidGlassEnabled.current && isGlassSupported() && !reduceDynamicBlur &&
         LocalGlasseBackdrop.current != null
     return if (on) {
-        liquidGlass(shape, surfaceTint = fill, pressed = pressed)
+        // a Glassé control: it presses, follows and stretches toward the finger, as every Glassé button does
+        val touch = com.benitbuhner.liquidglass.rememberGlassInteraction()
+        liquidGlass(shape, surfaceTint = fill, pressed = pressed, interaction = touch)
+            .glassTouch(touch)
     } else {
         background(fill, shape).then(if (edge != null) Modifier.border(1.dp, edge, shape) else Modifier)
     }

@@ -528,7 +528,7 @@ internal fun LandscapeCredits(
                 icon = if (showRevertCue) Icons.AutoMirrored.Rounded.Undo else Icons.Rounded.MoreHoriz,
                 contentDescription = stringResource(Res.string.more),
                 onClick = onOpenMenu,
-                modifier = Modifier.menuAnchor(),
+                modifier = Modifier.menuAnchor(onOpenMenu),
             )
         }
     }

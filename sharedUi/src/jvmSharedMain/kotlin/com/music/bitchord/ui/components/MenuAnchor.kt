@@ -4,6 +4,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,6 +58,10 @@ object MenuAnchor {
     class Handoff(val bounds: Rect, val alpha: () -> Float, val offset: () -> Offset)
 
     var handoff: Handoff? by mutableStateOf(null)
+
+    /** A finger is down on a ⋮ / ⋯: a hold there is the button's, not the row's it sits in. */
+    var pressed = false
+        internal set
 }
 
 /**
@@ -64,10 +69,25 @@ object MenuAnchor {
  * [MenuAnchor] the moment it is pressed, without taking the press from the
  * button's own click.
  */
+/**
+ * How a ⋮ or ⋯ opens its menu by being held or dragged, when the app's menus are a design system's that does
+ * that (Liquid Glass: Glassé's `glassMenuHold`, the same finger then slides over the rows and picks one). Null
+ * leaves the buttons to their tap alone.
+ */
+val LocalMenuHold = staticCompositionLocalOf<(@Composable (onOpen: () -> Unit) -> Modifier)?> { null }
+
 @Composable
-fun Modifier.menuAnchor(): Modifier {
+fun Modifier.menuAnchor(onOpen: (() -> Unit)? = null): Modifier {
     val anchor = remember { AnchorCoordinates() }
+    val hold = LocalMenuHold.current
+    val held = if (hold != null && onOpen != null) {
+        hold {
+            anchor.coordinates?.takeIf { it.isAttached }?.let { MenuAnchor.record(it.boundsInWindow()) }
+            onOpen()
+        }
+    } else Modifier
     return this
+        .then(held)
         .onPlaced { anchor.coordinates = it }
         .graphicsLayer {
             val h = MenuAnchor.handoff ?: return@graphicsLayer
@@ -81,6 +101,11 @@ fun Modifier.menuAnchor(): Modifier {
             awaitEachGesture {
                 awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
                 anchor.coordinates?.takeIf { it.isAttached }?.let { MenuAnchor.record(it.boundsInWindow()) }
+                // held on the button: the row around it is not being held (see longPressMenuClickable)
+                MenuAnchor.pressed = true
+                try {
+                    do { val e = awaitPointerEvent(PointerEventPass.Initial) } while (e.changes.any { it.pressed })
+                } finally { MenuAnchor.pressed = false }
             }
         }
 }
