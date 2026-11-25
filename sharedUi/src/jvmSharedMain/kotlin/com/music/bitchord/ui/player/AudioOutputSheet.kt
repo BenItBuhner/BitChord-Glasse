@@ -195,7 +195,7 @@ private fun AudioPipelineRow(onClick: () -> Unit) {
             )
         }
         Icon(
-            imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+            imageVector = com.music.bitchord.ui.icons.Symbols.of("chevronRight", Icons.AutoMirrored.Rounded.KeyboardArrowRight),
             contentDescription = null,
             tint = Color.White.copy(alpha = 0.35f),
             modifier = Modifier.size(20.dp),
@@ -268,7 +268,7 @@ private fun CastRow(cast: CastUi, onClick: () -> Unit) {
             )
         }
         Icon(
-            imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+            imageVector = com.music.bitchord.ui.icons.Symbols.of("chevronRight", Icons.AutoMirrored.Rounded.KeyboardArrowRight),
             contentDescription = null,
             tint = Color.White.copy(alpha = 0.35f),
             modifier = Modifier.size(20.dp),
@@ -337,7 +337,7 @@ private fun WatchRow(watch: WatchOutputUi, onClick: () -> Unit) {
         }
         if (active) {
             Icon(
-                imageVector = Icons.Rounded.Check,
+                imageVector = com.music.bitchord.ui.icons.Symbols.of("check", Icons.Rounded.Check),
                 contentDescription = null,
                 tint = Color.White,
                 modifier = Modifier.size(20.dp),
@@ -410,7 +410,7 @@ private fun OutputRow(
         }
         if (active) {
             Icon(
-                imageVector = Icons.Rounded.Check,
+                imageVector = com.music.bitchord.ui.icons.Symbols.of("check", Icons.Rounded.Check),
                 contentDescription = null,
                 tint = Color.White,
                 modifier = Modifier.size(20.dp),
@@ -463,7 +463,7 @@ private fun VolumeRow(routeKey: Any) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            imageVector = if (level > 0f) Icons.AutoMirrored.Rounded.VolumeUp else Icons.AutoMirrored.Rounded.VolumeOff,
+            imageVector = if (level > 0f) com.music.bitchord.ui.icons.Symbols.of("volHigh", Icons.AutoMirrored.Rounded.VolumeUp) else Icons.AutoMirrored.Rounded.VolumeOff,
             contentDescription = null,
             tint = Color.White.copy(alpha = 0.6f),
             modifier = Modifier.size(20.dp),

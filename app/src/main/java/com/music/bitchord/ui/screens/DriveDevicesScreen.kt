@@ -83,7 +83,7 @@ fun DriveDevicesScreen(
                 DriveBackup.Devices.Unknown, DriveBackup.Devices.Checking -> SettingsRow(
                     icon = SfIcons.Cloud,
                     title = stringResource(R.string.drive_devices_checking),
-                    trailing = { CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp) },
+                    trailing = { com.music.bitchord.ui.components.BusySpinner(modifier = Modifier.size(20.dp), strokeWidth = 2.dp) },
                 )
                 is DriveBackup.Devices.Failed -> SettingsRow(
                     icon = SfIcons.ErrorOutline,

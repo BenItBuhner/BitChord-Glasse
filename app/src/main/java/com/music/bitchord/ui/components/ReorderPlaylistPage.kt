@@ -103,7 +103,7 @@ fun ReorderPlaylistPage(
         ) {
             IconButton(onClick = onClose) {
                 Icon(
-                    Icons.Rounded.Close,
+                    com.music.bitchord.ui.icons.Symbols.of("xmark", Icons.Rounded.Close),
                     contentDescription = stringResource(R.string.back),
                     tint = palette.onBackground,
                 )
@@ -134,7 +134,7 @@ fun ReorderPlaylistPage(
                 ),
             ) {
                 if (saving) {
-                    CircularProgressIndicator(
+                    com.music.bitchord.ui.components.BusySpinner(
                         strokeWidth = 2.dp,
                         color = palette.onBackground,
                         modifier = Modifier.size(16.dp),
@@ -153,7 +153,7 @@ fun ReorderPlaylistPage(
                     .height(200.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator(
+                com.music.bitchord.ui.components.BusySpinner(
                     strokeWidth = 2.5.dp,
                     color = palette.onBackground,
                     modifier = Modifier.size(26.dp),
@@ -344,7 +344,7 @@ private fun ReorderRow(
             )
         }
         Icon(
-            imageVector = Icons.Rounded.DragHandle,
+            imageVector = com.music.bitchord.ui.icons.Symbols.of("grip", Icons.Rounded.DragHandle),
             contentDescription = stringResource(R.string.drag_to_reorder),
             tint = palette.onBackgroundVariant,
             modifier = Modifier

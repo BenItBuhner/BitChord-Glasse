@@ -467,7 +467,7 @@ fun <T : Any> IosMenuPopover(
      */
     glass: GlasseBackdrop? = null,
     /** The glyph of the button that opened it: the glass morph draws it on its head as the button turns into the menu. */
-    triggerIcon: ImageVector? = Icons.Rounded.MoreHoriz,
+    triggerIcon: ImageVector? = com.music.bitchord.ui.icons.Symbols.of("more", Icons.Rounded.MoreHoriz),
     /** The button is a bare glyph (a row's ⋮) with no glass of its own: the menu's glass grows out of it and
      *  drains back into it, rather than starting and ending as a glass circle (Glassé's bareTrigger). */
     bareTrigger: Boolean = false,

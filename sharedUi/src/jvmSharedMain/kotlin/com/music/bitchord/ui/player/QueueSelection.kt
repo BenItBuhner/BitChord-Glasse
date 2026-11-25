@@ -175,7 +175,7 @@ internal fun QueueSelectionBar(
                 BulkActionButton(BitChordIcons.Plus, stringResource(Res.string.queue_add_to_playlist), enabled) {
                     run { onAction(songs, QueueBulkAction.PLAYLIST) }
                 }
-                BulkActionButton(Icons.Rounded.Delete, stringResource(Res.string.queue_selection_remove), enabled) {
+                BulkActionButton(com.music.bitchord.ui.icons.Symbols.of("trash", Icons.Rounded.Delete), stringResource(Res.string.queue_selection_remove), enabled) {
                     val identities = selectedQueueEntryIdentities(selected, timeline)
                     run { onRemoveSelected(identities); true }
                 }

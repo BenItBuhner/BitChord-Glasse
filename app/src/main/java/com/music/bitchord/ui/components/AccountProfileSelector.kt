@@ -159,7 +159,7 @@ fun AccountProfileSelector(
             Text(profile.handle.ifBlank { stringResource(if (profile.isBrandAccount) R.string.brand_account else R.string.personal) },
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        if (selected && !managing) Icon(Icons.Rounded.Check, stringResource(R.string.selected_account), tint = MaterialTheme.colorScheme.primary)
+        if (selected && !managing) Icon(com.music.bitchord.ui.icons.Symbols.of("check", Icons.Rounded.Check), stringResource(R.string.selected_account), tint = MaterialTheme.colorScheme.primary)
         if (managing) Text(stringResource(R.string.sign_out), color = MaterialTheme.colorScheme.error)
     }
 }

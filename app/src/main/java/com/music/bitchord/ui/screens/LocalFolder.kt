@@ -516,7 +516,7 @@ private fun SongGridCard(
                 .thumbnailBorder(CARD_SHAPE),
             contentAlignment = Alignment.Center,
         ) {
-            CoverPlaceholder(Icons.Rounded.MusicNote, Modifier.fillMaxSize())
+            CoverPlaceholder(com.music.bitchord.ui.icons.Symbols.of("note", Icons.Rounded.MusicNote), Modifier.fillMaxSize())
             if (song.thumbnailUrl != null) {
                 AsyncImage(
                     model = song.thumbnailUrl.artworkAt(CARD_ART_PX),
@@ -557,7 +557,7 @@ private fun SongGridCard(
 private fun ArtistAvatar(group: LocalGroup, modifier: Modifier) {
     val art = remember(group.songs) { group.songs.firstNotNullOfOrNull { it.thumbnailUrl } }
     Box(modifier.clip(CircleShape).thumbnailBorder(CircleShape)) {
-        CoverPlaceholder(Icons.Rounded.Person, Modifier.fillMaxSize(), iconFraction = 0.5f)
+        CoverPlaceholder(com.music.bitchord.ui.icons.Symbols.of("person", Icons.Rounded.Person), Modifier.fillMaxSize(), iconFraction = 0.5f)
         if (art != null) {
             AsyncImage(
                 model = art.artworkAt(CARD_ART_PX),
@@ -665,10 +665,10 @@ private fun LocalGroup.coverArt(): String? {
 }
 
 private fun LocalGroup.placeholderIcon(): ImageVector = when {
-    OfflinePlaylists.isLikedPage(browseId) -> Icons.Rounded.Favorite
+    OfflinePlaylists.isLikedPage(browseId) -> com.music.bitchord.ui.icons.Symbols.of("heartFill", Icons.Rounded.Favorite)
     LocalGroups.isDirectory(browseId) -> Icons.Rounded.Folder
-    type == BrowseType.PLAYLIST -> Icons.AutoMirrored.Rounded.QueueMusic
-    else -> Icons.Rounded.Album
+    type == BrowseType.PLAYLIST -> com.music.bitchord.ui.icons.Symbols.of("queue", Icons.AutoMirrored.Rounded.QueueMusic)
+    else -> com.music.bitchord.ui.icons.Symbols.of("album", Icons.Rounded.Album)
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -830,7 +830,7 @@ internal fun LocalFolderSelectionBar(
     ) {
         IconButton(onClick = { state.selectAll(songs) }, enabled = !allSelected) {
             Icon(
-                Icons.Rounded.Check,
+                com.music.bitchord.ui.icons.Symbols.of("check", Icons.Rounded.Check),
                 contentDescription = stringResource(R.string.select_all),
                 tint = if (dark) Color.White else MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp),
@@ -853,7 +853,7 @@ internal fun LocalFolderSelectionBar(
         }
         folder.onDownload?.let { download ->
             SelectionAction(
-                icon = Icons.Rounded.Download,
+                icon = com.music.bitchord.ui.icons.Symbols.of("download", Icons.Rounded.Download),
                 label = stringResource(R.string.download),
                 color = MaterialTheme.colorScheme.primary,
                 enabled = count > 0,
@@ -862,7 +862,7 @@ internal fun LocalFolderSelectionBar(
         }
         folder.onRemoveFromCache?.let { remove ->
             SelectionAction(
-                icon = Icons.Rounded.Delete,
+                icon = com.music.bitchord.ui.icons.Symbols.of("trash", Icons.Rounded.Delete),
                 label = stringResource(R.string.cached_song_remove),
                 color = DESTRUCTIVE,
                 enabled = count > 0,
@@ -871,7 +871,7 @@ internal fun LocalFolderSelectionBar(
         }
         folder.onDelete?.let { delete ->
             SelectionAction(
-                icon = Icons.Rounded.Delete,
+                icon = com.music.bitchord.ui.icons.Symbols.of("trash", Icons.Rounded.Delete),
                 label = stringResource(R.string.delete),
                 color = DESTRUCTIVE,
                 enabled = count > 0,
@@ -909,7 +909,7 @@ private fun RowDownloadButton(song: Song, palette: ArtworkPalette, onDownload: (
         contentAlignment = Alignment.Center,
     ) {
         when (state) {
-            is DownloadState.Queued -> CircularProgressIndicator(
+            is DownloadState.Queued -> com.music.bitchord.ui.components.BusySpinner(
                 modifier = Modifier.size(18.dp),
                 strokeWidth = 2.dp,
                 color = palette.accent,
@@ -922,7 +922,7 @@ private fun RowDownloadButton(song: Song, palette: ArtworkPalette, onDownload: (
                     color = palette.accent,
                 )
             } else {
-                CircularProgressIndicator(
+                com.music.bitchord.ui.components.BusySpinner(
                     modifier = Modifier.size(18.dp),
                     strokeWidth = 2.dp,
                     color = palette.accent,
@@ -935,7 +935,7 @@ private fun RowDownloadButton(song: Song, palette: ArtworkPalette, onDownload: (
                 modifier = Modifier.size(20.dp),
             )
             null -> Icon(
-                if (done) Icons.Rounded.DownloadDone else Icons.Rounded.Download,
+                if (done) Icons.Rounded.DownloadDone else com.music.bitchord.ui.icons.Symbols.of("download", Icons.Rounded.Download),
                 contentDescription = stringResource(if (done) R.string.downloaded else R.string.download),
                 tint = if (done) palette.accent else palette.onBackgroundVariant,
                 modifier = Modifier.size(20.dp),

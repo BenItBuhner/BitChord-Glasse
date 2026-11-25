@@ -339,7 +339,7 @@ internal fun LyricsPickBar(
     ) {
         PickAction(
             label = stringResource(Res.string.cancel),
-            icon = Icons.Rounded.Close,
+            icon = com.music.bitchord.ui.icons.Symbols.of("xmark", Icons.Rounded.Close),
             accent = false,
             enabled = true,
             modifier = Modifier.weight(1f),
@@ -350,7 +350,7 @@ internal fun LyricsPickBar(
         )
         PickAction(
             label = stringResource(Res.string.share),
-            icon = Icons.Rounded.IosShare,
+            icon = com.music.bitchord.ui.icons.Symbols.of("share", Icons.Rounded.IosShare),
             accent = true,
             enabled = shareEnabled,
             modifier = Modifier.weight(1f),

@@ -641,7 +641,7 @@ private fun SuggestionRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            Icons.Rounded.Search,
+            com.music.bitchord.ui.icons.Symbols.of("search", Icons.Rounded.Search),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(22.dp),
@@ -919,7 +919,7 @@ private fun LazyListScope.recentAddonSearches(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    Icons.Rounded.Close,
+                    com.music.bitchord.ui.icons.Symbols.of("xmark", Icons.Rounded.Close),
                     contentDescription = stringResource(Res.string.recent_search_remove, term),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp),
@@ -1002,7 +1002,7 @@ private fun RecentSearchEntityRow(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    Icons.Rounded.Close,
+                    com.music.bitchord.ui.icons.Symbols.of("xmark", Icons.Rounded.Close),
                     contentDescription = stringResource(Res.string.recent_search_remove, entity.title),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp),

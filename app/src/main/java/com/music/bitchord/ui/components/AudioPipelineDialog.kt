@@ -355,7 +355,7 @@ fun AudioPipelineDialog(
             PipelineRule()
             PipelineSection(
                 stageIndex = 2,
-                icon = Icons.Rounded.Tune,
+                icon = com.music.bitchord.ui.icons.Symbols.of("sliders", Icons.Rounded.Tune),
                 title = if (dsdRateHz != null) "DSD to PCM" else stringResource(R.string.pipeline_resampler),
                 columnCoordinates = columnCoordinates,
                 stageActivationProvider = stageActivation,
@@ -467,7 +467,7 @@ fun AudioPipelineDialog(
             PipelineRule()
             PipelineSection(
                 stageIndex = 4,
-                icon = Icons.AutoMirrored.Rounded.VolumeUp,
+                icon = com.music.bitchord.ui.icons.Symbols.of("volHigh", Icons.AutoMirrored.Rounded.VolumeUp),
                 title = stringResource(R.string.pipeline_output_device),
                 columnCoordinates = columnCoordinates,
                 stageActivationProvider = stageActivation,

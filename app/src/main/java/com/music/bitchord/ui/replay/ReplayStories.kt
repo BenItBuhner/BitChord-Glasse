@@ -373,7 +373,7 @@ private fun StoryChrome(
     Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
         Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.End) {
             Icon(
-                imageVector = Icons.Rounded.Close,
+                imageVector = com.music.bitchord.ui.icons.Symbols.of("xmark", Icons.Rounded.Close),
                 contentDescription = stringResource(R.string.close_replay),
                 tint = Color.White,
                 modifier = Modifier
@@ -495,7 +495,7 @@ private fun StoryPage(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = Icons.Rounded.IosShare,
+                    imageVector = com.music.bitchord.ui.icons.Symbols.of("share", Icons.Rounded.IosShare),
                     contentDescription = stringResource(R.string.share_my_replay),
                     tint = Color.White,
                     modifier = Modifier.size(20.dp),

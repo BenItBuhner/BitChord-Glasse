@@ -525,7 +525,7 @@ internal fun InlineQueue(
                     Text(stringResource(Res.string.queue_select_all), color = Color.White)
                 }
                 IconButton(onClick = selectionState::clear) {
-                    Icon(Icons.Rounded.Close, contentDescription = stringResource(Res.string.queue_close_selection), tint = Color.White)
+                    Icon(com.music.bitchord.ui.icons.Symbols.of("xmark", Icons.Rounded.Close), contentDescription = stringResource(Res.string.queue_close_selection), tint = Color.White)
                 }
             } else if (selection != null) {
                 Text(
@@ -1169,7 +1169,7 @@ private fun InlineQueueRow(
     val handle: @Composable () -> Unit = {
         if (draggable) {
             Icon(
-                Icons.Rounded.DragHandle,
+                com.music.bitchord.ui.icons.Symbols.of("grip", Icons.Rounded.DragHandle),
                 contentDescription = stringResource(Res.string.drag_to_reorder),
                 tint = Color.White.copy(alpha = 0.4f),
                 modifier = Modifier
@@ -1222,7 +1222,7 @@ private fun InlineQueueRow(
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
-                    if (selectionChecked) Icon(Icons.Rounded.Check, null, tint = Color.White, modifier = Modifier.size(15.dp))
+                    if (selectionChecked) Icon(com.music.bitchord.ui.icons.Symbols.of("check", Icons.Rounded.Check), null, tint = Color.White, modifier = Modifier.size(15.dp))
                 }
             }
         } else if (selectionChecked != null) {

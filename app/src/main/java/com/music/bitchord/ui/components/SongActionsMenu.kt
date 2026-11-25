@@ -948,7 +948,7 @@ internal fun ActionRow(
 @Composable
 private fun LoadingActionRow(icon: ImageVector, label: String, palette: ArtworkPalette) {
     IosMenuRow(label = label, icon = icon, onClick = null, enabled = false) {
-        CircularProgressIndicator(
+        com.music.bitchord.ui.components.BusySpinner(
             color = palette.onBackgroundVariant,
             strokeWidth = 2.dp,
             modifier = Modifier.size(16.dp),

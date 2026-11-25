@@ -359,11 +359,15 @@ fun FrostedTopBar(
                     // Liquid Glass: each action is a Glassé button of its own, 10 dp apart (iOS 26's bar
                     // group, the demo's GlassGroup gap), each pressing, following and stretching on its own,
                     // and a menu morphs out of the very button that opens it.
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(TOP_GLASS_GAP),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        CompositionLocalProvider(LocalTopBarGlass provides glasse, content = actions)
+                    // One Glassé group: buttons that come close (a press pulling one toward
+                    // the next, actions appearing in a selection mode) merge by themselves.
+                    com.benitbuhner.liquidglass.GlassGroup(glasse, spacing = TOP_GLASS_GAP) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(TOP_GLASS_GAP),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            CompositionLocalProvider(LocalTopBarGlass provides glasse, content = actions)
+                        }
                     }
                 } else if (useFloatingChrome) {
                     ArtworkPageActions(hazeState = backButtonHazeState, content = actions)
@@ -651,7 +655,7 @@ fun TopBarAccountButton(
             modifier = modifier
                 .graphicsLayer { translationY = translation.value }
                 .profileSwipe(onSwipeProfile, translation, scope),
-            icon = Icons.Rounded.Person,
+            icon = com.music.bitchord.ui.icons.Symbols.of("person", Icons.Rounded.Person),
             contentDescription = stringResource(R.string.switch_account),
             size = TOP_CONTROL_SIZE,
             onOpen = onMenuOpen,
@@ -661,7 +665,7 @@ fun TopBarAccountButton(
                     contentDescription = stringResource(R.string.switch_account),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.size(TOP_CONTROL_SIZE - 6.dp).clip(CircleShape),
-                ) else Icon(Icons.Rounded.Person, stringResource(R.string.switch_account), Modifier.size(24.dp))
+                ) else Icon(com.music.bitchord.ui.icons.Symbols.of("person", Icons.Rounded.Person), stringResource(R.string.switch_account), Modifier.size(24.dp))
             },
         )
         return
@@ -689,7 +693,7 @@ fun TopBarAccountButton(
                     )
                 } else {
                     Icon(
-                        Icons.Rounded.Person,
+                        com.music.bitchord.ui.icons.Symbols.of("person", Icons.Rounded.Person),
                         contentDescription = stringResource(R.string.switch_account),
                         modifier = Modifier.size(24.dp),
                     )
@@ -740,7 +744,7 @@ fun TopBarAccountButton(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    Icons.Rounded.Person,
+                    com.music.bitchord.ui.icons.Symbols.of("person", Icons.Rounded.Person),
                     contentDescription = stringResource(R.string.switch_account),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp),
@@ -820,7 +824,7 @@ private fun RefreshPuck(refreshing: Boolean, pullFraction: () -> Float, modifier
         ) {
             val indicatorModifier = Modifier.size(22.dp)
             if (refreshing) {
-                CircularProgressIndicator(
+                com.music.bitchord.ui.components.BusySpinner(
                     modifier = indicatorModifier,
                     color = MaterialTheme.colorScheme.primary,
                     strokeWidth = 2.5.dp,

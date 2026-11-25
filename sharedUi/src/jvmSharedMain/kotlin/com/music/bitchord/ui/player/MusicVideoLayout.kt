@@ -199,7 +199,7 @@ internal fun FullscreenVideoPlayer(
 @Composable
 internal fun VideoLoadingBackdrop(modifier: Modifier = Modifier) {
     Box(modifier.background(Color.Black), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(
+        com.music.bitchord.ui.components.BusySpinner(
             color = Color.White,
             strokeWidth = 3.dp,
             modifier = Modifier.size(36.dp),
@@ -364,7 +364,7 @@ private fun QualityRow(name: String, detail: String?, active: Boolean, onSelect:
         Box(Modifier.size(20.dp), contentAlignment = Alignment.Center) {
             if (active) {
                 Icon(
-                    imageVector = Icons.Rounded.Check,
+                    imageVector = com.music.bitchord.ui.icons.Symbols.of("check", Icons.Rounded.Check),
                     contentDescription = null,
                     tint = Color.White,
                     modifier = Modifier.size(20.dp),

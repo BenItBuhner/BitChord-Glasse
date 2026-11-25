@@ -266,7 +266,7 @@ internal fun QueueSwipeRow(
             contentAlignment = if (action == QueueSwipeAction.REMOVE) Alignment.CenterEnd else Alignment.CenterStart,
         ) {
             Icon(
-                imageVector = if (action == QueueSwipeAction.REMOVE) Icons.Rounded.Delete else Icons.AutoMirrored.Rounded.PlaylistAdd,
+                imageVector = if (action == QueueSwipeAction.REMOVE) com.music.bitchord.ui.icons.Symbols.of("trash", Icons.Rounded.Delete) else Icons.AutoMirrored.Rounded.PlaylistAdd,
                 contentDescription = null,
                 tint = tint,
                 modifier = Modifier.size(24.dp),

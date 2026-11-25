@@ -164,13 +164,13 @@ private fun CastDeviceRow(
             }
         }
         when {
-            connecting -> CircularProgressIndicator(
+            connecting -> com.music.bitchord.ui.components.BusySpinner(
                 modifier = Modifier.size(16.dp),
                 color = Color.White.copy(alpha = 0.8f),
                 strokeWidth = 1.75.dp,
             )
             connected -> Icon(
-                imageVector = Icons.Rounded.Check,
+                imageVector = com.music.bitchord.ui.icons.Symbols.of("check", Icons.Rounded.Check),
                 contentDescription = null,
                 tint = Color.White,
                 modifier = Modifier.size(18.dp),
@@ -188,7 +188,7 @@ private fun SearchingRow() {
             .padding(horizontal = 24.dp, vertical = 22.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        CircularProgressIndicator(
+        com.music.bitchord.ui.components.BusySpinner(
             modifier = Modifier.size(20.dp),
             color = Color.White.copy(alpha = 0.7f),
             strokeWidth = 2.dp,

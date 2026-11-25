@@ -1516,7 +1516,7 @@ internal fun TranslationToggleButton(
         contentAlignment = Alignment.Center,
     ) {
         if (state is LyricsTranslationUiState.Loading) {
-            CircularProgressIndicator(
+            com.music.bitchord.ui.components.BusySpinner(
                 modifier = Modifier.size(16.dp),
                 color = tint,
                 strokeWidth = 1.7.dp,
@@ -1569,7 +1569,7 @@ internal fun RomanizationToggleButton(
         contentAlignment = Alignment.Center,
     ) {
         if (state is LyricsTranslationUiState.Loading) {
-            CircularProgressIndicator(
+            com.music.bitchord.ui.components.BusySpinner(
                 modifier = Modifier.size(16.dp),
                 color = tint,
                 strokeWidth = 1.7.dp,

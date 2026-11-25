@@ -236,7 +236,7 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            imageVector = Icons.Rounded.Search,
+            imageVector = com.music.bitchord.ui.icons.Symbols.of("search", Icons.Rounded.Search),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
             modifier = Modifier.size(16.dp),
@@ -310,7 +310,7 @@ private fun LanguageChoiceRow(
         Spacer(Modifier.width(10.dp))
         if (selected) {
             Icon(
-                imageVector = Icons.Rounded.Check,
+                imageVector = com.music.bitchord.ui.icons.Symbols.of("check", Icons.Rounded.Check),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(19.dp),

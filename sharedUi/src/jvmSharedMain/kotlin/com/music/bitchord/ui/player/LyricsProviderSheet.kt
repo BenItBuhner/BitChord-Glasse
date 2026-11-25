@@ -137,25 +137,25 @@ private fun LyricsProviderRow(
             contentAlignment = Alignment.Center,
         ) {
             when {
-                state == LyricsProviderState.FETCHING -> CircularProgressIndicator(
+                state == LyricsProviderState.FETCHING -> com.music.bitchord.ui.components.BusySpinner(
                     color = Color.White.copy(alpha = 0.8f),
                     strokeWidth = 2.dp,
                     modifier = Modifier.size(20.dp),
                 )
                 current || state == LyricsProviderState.FOUND -> Icon(
-                    imageVector = Icons.Rounded.Check,
+                    imageVector = com.music.bitchord.ui.icons.Symbols.of("check", Icons.Rounded.Check),
                     contentDescription = null,
                     tint = Color.White.copy(alpha = if (current) 1f else 0.75f),
                     modifier = Modifier.size(21.dp),
                 )
                 state == LyricsProviderState.NOT_FOUND -> Icon(
-                    imageVector = Icons.Rounded.Close,
+                    imageVector = com.music.bitchord.ui.icons.Symbols.of("xmark", Icons.Rounded.Close),
                     contentDescription = null,
                     tint = Color.White.copy(alpha = 0.4f),
                     modifier = Modifier.size(20.dp),
                 )
                 else -> Icon(
-                    imageVector = Icons.Rounded.Search,
+                    imageVector = com.music.bitchord.ui.icons.Symbols.of("search", Icons.Rounded.Search),
                     contentDescription = null,
                     tint = Color.White.copy(alpha = 0.7f),
                     modifier = Modifier.size(20.dp),

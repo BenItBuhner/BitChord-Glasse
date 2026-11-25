@@ -179,7 +179,7 @@ fun ReplayScreen(
             when {
                 state.loading && summary == null -> item("loading") {
                     Box(Modifier.fillMaxWidth().padding(64.dp), Alignment.Center) {
-                        CircularProgressIndicator(color = textColor.copy(alpha = 0.6f))
+                        com.music.bitchord.ui.components.BusySpinner(color = textColor.copy(alpha = 0.6f))
                     }
                 }
                 summary == null || summary.isEmpty -> item("empty") { EmptyReplay(state.period, dark) }
@@ -249,7 +249,7 @@ fun ReplayScreen(
                     item("habits") { Habits(summary, dark) }
                     item("share") {
                         ReplayActionRow(
-                            Icons.Rounded.IosShare,
+                            com.music.bitchord.ui.icons.Symbols.of("share", Icons.Rounded.IosShare),
                             stringResource(R.string.share_my_replay),
                             dark,
                             onShare,

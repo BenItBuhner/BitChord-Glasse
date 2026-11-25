@@ -137,7 +137,7 @@ fun ReplayYearShareSheet(year: ReplayYear, slide: YearSlide, onDismiss: () -> Un
                         }
                         .clipToBounds(),
                 )
-                CircularProgressIndicator(Modifier.align(Alignment.Center))
+                com.music.bitchord.ui.components.BusySpinner(Modifier.align(Alignment.Center))
             }
         }
 
@@ -147,7 +147,7 @@ fun ReplayYearShareSheet(year: ReplayYear, slide: YearSlide, onDismiss: () -> Un
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             ShareAction(
                 label = if (saved) stringResource(R.string.saved) else stringResource(R.string.save),
-                icon = Icons.Rounded.Download,
+                icon = com.music.bitchord.ui.icons.Symbols.of("download", Icons.Rounded.Download),
                 accent = false,
                 enabled = ready && !saved,
                 modifier = Modifier.weight(1f),
@@ -157,7 +157,7 @@ fun ReplayYearShareSheet(year: ReplayYear, slide: YearSlide, onDismiss: () -> Un
             }
             ShareAction(
                 label = stringResource(R.string.share),
-                icon = Icons.Rounded.IosShare,
+                icon = com.music.bitchord.ui.icons.Symbols.of("share", Icons.Rounded.IosShare),
                 accent = true,
                 enabled = ready,
                 modifier = Modifier.weight(1f),

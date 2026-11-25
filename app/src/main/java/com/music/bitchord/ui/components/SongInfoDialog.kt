@@ -135,7 +135,7 @@ internal fun SongInfoDialog(song: Song, onDismiss: () -> Unit) {
                         }
                         if (creditsScroll.canScrollForward) {
                             Icon(
-                                imageVector = Icons.Rounded.KeyboardArrowDown,
+                                imageVector = com.music.bitchord.ui.icons.Symbols.of("chevronDown", Icons.Rounded.KeyboardArrowDown),
                                 contentDescription = null,
                                 tint = onSurface.copy(alpha = 0.35f),
                                 modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 2.dp).size(16.dp),
@@ -196,7 +196,7 @@ private fun SongInfoRow(label: String, value: String?) {
         Spacer(Modifier.width(12.dp))
         Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
             if (value == null) {
-                CircularProgressIndicator(
+                com.music.bitchord.ui.components.BusySpinner(
                     modifier = Modifier.size(14.dp),
                     color = onSurface.copy(alpha = 0.5f),
                     strokeWidth = 1.75.dp,

@@ -148,7 +148,7 @@ fun ReplayShareSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
-                else -> CircularProgressIndicator()
+                else -> com.music.bitchord.ui.components.BusySpinner()
             }
         }
 
@@ -171,7 +171,7 @@ fun ReplayShareSheet(
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             ShareAction(
                 label = if (saved) stringResource(R.string.saved) else stringResource(R.string.save),
-                icon = Icons.Rounded.Download,
+                icon = com.music.bitchord.ui.icons.Symbols.of("download", Icons.Rounded.Download),
                 accent = false,
                 enabled = ready && !saved,
                 modifier = Modifier.weight(1f),
@@ -181,7 +181,7 @@ fun ReplayShareSheet(
             }
             ShareAction(
                 label = stringResource(R.string.share),
-                icon = Icons.Rounded.IosShare,
+                icon = com.music.bitchord.ui.icons.Symbols.of("share", Icons.Rounded.IosShare),
                 accent = true,
                 enabled = ready,
                 modifier = Modifier.weight(1f),
@@ -269,14 +269,14 @@ internal fun ShareAction(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (now == ActionState.BUSY) {
-                    CircularProgressIndicator(
+                    com.music.bitchord.ui.components.BusySpinner(
                         modifier = Modifier.size(17.dp),
                         strokeWidth = 2.dp,
                         color = foreground,
                     )
                 } else {
                     Icon(
-                        imageVector = if (now == ActionState.SAVED) Icons.Rounded.Check else icon,
+                        imageVector = if (now == ActionState.SAVED) com.music.bitchord.ui.icons.Symbols.of("check", Icons.Rounded.Check) else icon,
                         contentDescription = null,
                         tint = foreground,
                         modifier = Modifier.size(19.dp),

@@ -240,7 +240,7 @@ internal fun AndroidLyricsShareSheet(
                         .background(Color.White.copy(alpha = 0.06f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    CircularProgressIndicator(
+                    com.music.bitchord.ui.components.BusySpinner(
                         modifier = Modifier.size(26.dp),
                         strokeWidth = 2.5.dp,
                         color = Color.White.copy(alpha = 0.75f),
@@ -322,7 +322,7 @@ internal fun AndroidLyricsShareSheet(
             ) {
                 ShareAction(
                     label = stringResource(R.string.save),
-                    icon = Icons.Rounded.Download,
+                    icon = com.music.bitchord.ui.icons.Symbols.of("download", Icons.Rounded.Download),
                     accent = false,
                     enabled = image != null && !exporting && !saving,
                     plainFill = PlainFill,
@@ -359,7 +359,7 @@ internal fun AndroidLyricsShareSheet(
                 )
                 ShareAction(
                     label = stringResource(R.string.share),
-                    icon = Icons.Rounded.IosShare,
+                    icon = com.music.bitchord.ui.icons.Symbols.of("share", Icons.Rounded.IosShare),
                     accent = true,
                     enabled = image != null && !exporting && !saving,
                     modifier = Modifier.weight(1f),
@@ -422,7 +422,7 @@ private fun ExportSpinner() {
             .background(Color.Black.copy(alpha = 0.35f)),
         contentAlignment = Alignment.Center,
     ) {
-        CircularProgressIndicator(
+        com.music.bitchord.ui.components.BusySpinner(
             modifier = Modifier.size(26.dp),
             strokeWidth = 2.5.dp,
             color = Color.White.copy(alpha = 0.85f),
