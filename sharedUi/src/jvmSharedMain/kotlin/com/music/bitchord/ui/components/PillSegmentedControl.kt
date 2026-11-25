@@ -21,8 +21,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
@@ -67,6 +69,13 @@ fun PillSegmentedControl(
     disabled: Set<Int> = emptySet(),
 ) {
     if (options.isEmpty()) return
+    // Liquid Glass: the app's design system control (Glassé's segmented control) wherever it fits: it has no
+    // per-segment disabling and is sized for up to four segments; more stay on the scrolling pill row.
+    val glass = LocalGlassSegmented.current
+    if (glass != null && disabled.isEmpty() && options.size <= 4) {
+        glass(options, selectedIndex, { if (enabled) onSelect(it) }, modifier.alpha(if (enabled) 1f else 0.4f))
+        return
+    }
     val haptics = LocalHapticFeedback.current
     val density = LocalDensity.current
     val style = MaterialTheme.typography.labelMedium
@@ -217,3 +226,7 @@ private val LABEL_VERTICAL_PADDING = 9.dp
 private val EDGE_FADE = 28.dp
 private const val PILL_DAMPING = 0.8f
 private const val DISABLED_LABEL_ALPHA = 0.3f
+
+/** Provided by the app while Liquid Glass is on: its design system's segmented control, which every
+ *  [PillSegmentedControl] that fits it becomes (options, selected index, onSelect, modifier). */
+val LocalGlassSegmented = staticCompositionLocalOf<(@Composable (List<String>, Int, (Int) -> Unit, Modifier) -> Unit)?> { null }

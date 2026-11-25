@@ -668,7 +668,12 @@ fun RowMoreButton(
             .size(36.dp)
             .menuAnchor(onClick, bare = true)
             .clip(CircleShape)
-            .clickable(onClick = onClick),
+            .then(
+                // Liquid Glass: the menu's glass grows out of the glyph itself, so no grey press disc first
+                if (LocalMenuHold.current != null) {
+                    Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick)
+                } else Modifier.clickable(onClick = onClick),
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Icon(

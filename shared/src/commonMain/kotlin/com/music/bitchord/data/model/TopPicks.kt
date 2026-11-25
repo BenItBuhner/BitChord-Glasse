@@ -94,6 +94,13 @@ enum class TopPickMood(val params: String, val shelfWords: List<String> = emptyL
     /** One of Apple's seven "Find Your Mood" stations, rather than an activity. */
     val isCoreMood: Boolean get() = ordinal <= LOVE.ordinal
 
+    /** The category's name on YouTube Music's Moods & moments page, to find its current params by when the built-in ones go stale. */
+    val categoryTitle: String get() = when (params) {
+        CHILL_CATEGORY -> "Chill"; COMMUTE -> "Commute"; ENERGIZE -> "Energize"; FEEL_GOOD_CATEGORY -> "Feel good"
+        FOCUS_CATEGORY -> "Focus"; GAMING_CATEGORY -> "Gaming"; PARTY_CATEGORY -> "Party"; ROMANCE -> "Romance"
+        SAD -> "Sad"; SLEEP_CATEGORY -> "Sleep"; WORKOUT -> "Workout"; else -> name.lowercase()
+    }
+
     companion object {
         const val CATEGORY_BROWSE_ID = "FEmusic_moods_and_genres_category"
     }

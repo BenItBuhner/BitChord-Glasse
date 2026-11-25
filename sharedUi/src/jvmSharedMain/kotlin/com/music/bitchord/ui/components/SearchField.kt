@@ -30,6 +30,8 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -45,6 +47,12 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
  * rather than its own 46dp.
  */
 val LocalSearchFieldOnSurface = staticCompositionLocalOf { false }
+
+/** iOS's tertiary system fill (a search field's own fill): it shows on a white page and on a grouped grey one alike,
+ *  where the theme's surfaceVariant matched the grey page and the field vanished. */
+@Composable
+private fun searchFill(): Color =
+    Color(0xFF767680).copy(alpha = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) 0.24f else 0.12f)
 
 /**
  * The pill-shaped search field used at the top of the search page — a
@@ -81,7 +89,7 @@ fun SearchField(
                     // Fixed height prevents the row from growing when text is entered
                     Modifier
                         .height(46.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(11.dp))
+                        .background(searchFill(), RoundedCornerShape(11.dp))
                 },
             )
             // Asymmetric: the magnifier is a button now and wants a real touch

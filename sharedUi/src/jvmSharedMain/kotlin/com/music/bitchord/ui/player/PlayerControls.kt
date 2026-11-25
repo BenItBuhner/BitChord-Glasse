@@ -566,6 +566,32 @@ internal fun BestPartPill(
         val label = stringResource(Res.string.best_part)
         val description = stringResource(Res.string.best_part_description)
         val chrome = LocalPlayerChrome.current
+        val glassCapsule = LocalPlayerGlassCapsule.current
+        if (glassCapsule != null) {
+            // Liquid Glass on: the same glass capsule as the bottom row's, not a frost imitating it
+            glassCapsule(
+                Modifier
+                    .padding(top = 8.dp)
+                    .clip(shape)
+                    .clickable(role = Role.Button) {
+                        val target = at ?: return@clickable
+                        haptics.play(Haptic.Tap)
+                        heard = true
+                        onSeek(target)
+                    }
+                    .semantics { contentDescription = description },
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(start = 12.dp, end = 15.dp, top = 7.dp, bottom = 7.dp),
+                ) {
+                    Icon(BitChordIcons.MusicNote, contentDescription = null, tint = Color.White, modifier = Modifier.size(15.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.W700, color = Color.White, maxLines = 1)
+                }
+            }
+            return@AnimatedVisibility
+        }
         Box(
             modifier = Modifier
                 .padding(top = 8.dp)

@@ -1,5 +1,6 @@
 package com.music.bitchord
 
+import com.benitbuhner.liquidglass.groupedBackground
 import androidx.compose.runtime.Stable
 import androidx.compose.animation.ContentTransform
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -525,6 +526,8 @@ class MainActivity : AppCompatActivity() {
                     LocalLiquidGlassEnabled provides liquidGlassEnabled,
                     // Liquid Glass: a ⋮ / ⋯ opens its menu on a hold or a drag too, and the finger picks a row (Glassé)
                     com.music.bitchord.ui.components.LocalMenuHold provides if (liquidGlassEnabled) glassMenuHold else null,
+                    // Liquid Glass: every segmented control is Glassé's (the demo's own selection lens)
+                    com.music.bitchord.ui.components.LocalGlassSegmented provides if (liquidGlassEnabled && com.music.bitchord.ui.components.isGlassSupported()) GlasseSegmented else null,
                     LocalAppBackdrop provides appBackdrop,
                     LocalGlasseBackdrop provides glasseBackdrop,
                     LocalScreenGlass provides screenGlass,
@@ -1870,6 +1873,7 @@ private fun BitChordApp(
      * does, and AutoPlay carries it on past its last track.
      */
     val openTopPick: (TopPick, String) -> Unit = { pick, label ->
+
         val browseId = pick.browseId
         if (pick.kind == TopPickKind.LATEST_RELEASE && browseId != null) {
             viewModel.openDetail(
@@ -3095,7 +3099,15 @@ private fun BitChordApp(
                 val pageSlot: @Composable (AppDestination, Boolean, Boolean) -> Unit = { destination, sliding, leaving ->
                     // Liquid Glass slides pages over each other (iOS): while they move each is opaque, as a
                     // page is there, so the one underneath shows only where the top one has moved off it.
-                    Box(Modifier.fillMaxSize().then(if (sliding) Modifier.background(MaterialTheme.colorScheme.background) else Modifier)) {
+                    // Settings pages sit on iOS's grouped background (Glassé's), so their white cards show as cards
+                    val grouped = (destination as? AppDestination.Route)?.entry?.route.let {
+                        it == AppRoute.Settings || it == AppRoute.AccountScrobbling || it == AppRoute.Sources || it == AppRoute.ListenTogether ||
+                            it == AppRoute.WearOs || it == AppRoute.Equalizer || it == AppRoute.EqualizerPresets || it == AppRoute.Discord ||
+                            it == AppRoute.Spotify || it == AppRoute.DriveBackup || it == AppRoute.DriveDevices ||
+                            it is AppRoute.SettingsSection || it is AppRoute.SettingsChoice
+                    } && com.music.bitchord.ui.screens.glassSettings()
+                    val pageFill = if (grouped) com.benitbuhner.liquidglass.LocalGlassTheme.current.groupedBackground else MaterialTheme.colorScheme.background
+                    Box(Modifier.fillMaxSize().then(if (sliding || grouped) Modifier.background(pageFill) else Modifier)) {
                     // Every branch below reads `destination` rather than the
                     // stack that produced it. The two are the same thing only
                     // for the page being entered: the one on its way out is
@@ -7108,4 +7120,9 @@ private val glassMenuHold: @Composable (() -> Unit) -> Modifier = { open -> Modi
 @Composable
 private fun SheetGlassHost(enabled: Boolean, content: @Composable () -> Unit) {
     if (enabled) com.benitbuhner.liquidglass.GlassHost { content() } else content()
+}
+
+/** Glassé's segmented control, for [com.music.bitchord.ui.components.LocalGlassSegmented]. */
+private val GlasseSegmented: @Composable (List<String>, Int, (Int) -> Unit, Modifier) -> Unit = { options, selected, onSelect, modifier ->
+    com.benitbuhner.liquidglass.GlassSegmented(options = options, selected = selected, onSelect = onSelect, modifier = modifier)
 }
