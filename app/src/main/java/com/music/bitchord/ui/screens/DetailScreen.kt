@@ -14,7 +14,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
-import com.music.bitchord.ui.components.glassControl
 import com.music.bitchord.ui.components.continuous
 import com.music.bitchord.ui.components.FadingText
 import com.music.bitchord.ui.components.longPressMenuClickable
@@ -172,7 +171,6 @@ import com.music.bitchord.ui.components.SHELF_CARD_WIDTH
 import com.music.bitchord.ui.components.SongRow
 import com.music.bitchord.ui.components.SearchPlayingBars
 import com.music.bitchord.ui.components.libraryGrid
-import com.music.bitchord.ui.components.lightweightLiquidGlass
 import com.music.bitchord.ui.components.thumbnailBorder
 import com.music.bitchord.ui.components.detailSkeleton
 import com.music.bitchord.ui.components.topBarContentPadding
@@ -219,7 +217,7 @@ private const val FULL_BLEED_FADE_FRACTION = 0.42f
 private val FULL_BLEED_TITLE_OVERLAP = 44.dp
 
 /** Shuffle and Add to Library either side of the release page's Play pill. */
-private val RELEASE_SIDE_BUTTON = 50.dp
+private val RELEASE_SIDE_BUTTON = 44.dp
 private val RELEASE_ACTION_GAP = 14.dp
 
 /** Past this the Play pill stops growing, so a tablet doesn't get a bar. */
@@ -1698,22 +1696,32 @@ private fun ActionPill(
     val haptics = rememberHaptics()
     val content = if (filled) Color.Black else MaterialTheme.colorScheme.onSurface
     val glass = com.music.bitchord.ui.components.LocalLiquidGlassEnabled.current
+    val glasse = glasseControlBackdrop()
+    if (glasse != null) {
+        // Liquid Glass: Glassé's own button, the same glass as every bar button (Play filled white, as it always was)
+        com.benitbuhner.liquidglass.GlassButton(
+            onClick = { haptics.play(Haptic.Resume); onClick() },
+            backdrop = glasse,
+            modifier = modifier.height(size),
+            tint = if (filled) Color.White else null,
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 24.dp),
+        ) {
+            Icon(imageVector = icon, contentDescription = null, tint = content, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(text = label, style = MaterialTheme.typography.titleMedium, color = content, maxLines = 1)
+        }
+        return
+    }
     Row(
         modifier = modifier
             .height(size)
             .then(if (glass) Modifier else Modifier.clip(CircleShape))
             .then(
-                if (filled && glass) {
-                    // Play as Glassé glass filled white: it presses and stretches like the circles beside it
-                    Modifier.glassControl(CircleShape, fill = Color.White)
-                } else if (filled) {
+                if (filled) {
                     Modifier.background(Color.White)
                 } else {
-                    Modifier.glassControl(
-                        CircleShape,
-                        fill = Color.White.copy(alpha = LIGHT_FILL_ALPHA),
-                        edge = Color.White.copy(alpha = TOP_RELEASE_EDGE_ALPHA),
-                    )
+                    Modifier.background(Color.White.copy(alpha = LIGHT_FILL_ALPHA), CircleShape)
+                        .border(1.dp, Color.White.copy(alpha = TOP_RELEASE_EDGE_ALPHA), CircleShape)
                 },
             )
             .clickable(interactionSource = null, indication = if (glass) null else androidx.compose.material3.ripple()) {
@@ -1814,18 +1822,26 @@ private fun CircleIconButton(
     val haptics = rememberHaptics()
     // Liquid Glass: unclipped, so the glass can stretch past its circle toward the finger (Glassé's touch)
     val glass = com.music.bitchord.ui.components.LocalLiquidGlassEnabled.current
+    val glasse = glasseControlBackdrop()
+    if (glasse != null) {
+        // Liquid Glass: Glassé's own icon button, the same glass and size rules as the bar buttons
+        com.benitbuhner.liquidglass.GlassIconButton(
+            icon = icon,
+            contentDescription = contentDescription,
+            onClick = { if (enabled) { haptics.play(haptic); onClick() } },
+            backdrop = glasse,
+            modifier = Modifier.alpha(if (enabled) 1f else DISABLED_ACTION_ALPHA),
+            size = size,
+        )
+        return
+    }
     Box(
         modifier = Modifier
             .size(size)
             .alpha(if (enabled) 1f else DISABLED_ACTION_ALPHA)
             .then(if (glass) Modifier else Modifier.clip(CircleShape))
-            // The floating bars' Glassé glass, with Liquid Glass on: it bends
-            // the artwork's colour behind it; the flat fill and edge off.
-            .glassControl(
-                CircleShape,
-                fill = Color.White.copy(alpha = LIGHT_FILL_ALPHA),
-                edge = Color.White.copy(alpha = TOP_RELEASE_EDGE_ALPHA),
-            )
+            .background(Color.White.copy(alpha = LIGHT_FILL_ALPHA), CircleShape)
+            .border(1.dp, Color.White.copy(alpha = TOP_RELEASE_EDGE_ALPHA), CircleShape)
             .then(
                 if (glass) Modifier.clickable(enabled = enabled, interactionSource = null, indication = null) {
                     haptics.play(haptic)
@@ -1888,10 +1904,8 @@ private fun StatChip(icon: ImageVector, text: String, palette: ArtworkPalette) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .lightweightLiquidGlass(
-                shape = CircleShape,
-                fallbackColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
-            )
+            // content, not a control: a plain chip (glass is for controls and bars)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f), CircleShape)
             .padding(horizontal = 12.dp, vertical = 6.dp),
     ) {
         Icon(
@@ -2557,4 +2571,13 @@ private fun List<Song>.playtime(): String? {
         minutes < 60 -> stringResource(R.string.minutes_short, minutes.toInt())
         else -> stringResource(R.string.hours_minutes_short, (minutes / 60).toInt(), (minutes % 60).toInt())
     }
+}
+
+/** The page's Glassé backdrop while Liquid Glass draws (on, supported, blur not reduced); null otherwise. */
+@Composable
+private fun glasseControlBackdrop(): com.benitbuhner.liquidglass.Backdrop? {
+    val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
+    val on = com.music.bitchord.ui.components.LocalLiquidGlassEnabled.current &&
+        com.music.bitchord.ui.components.isGlassSupported() && !reduceDynamicBlur
+    return com.music.bitchord.ui.components.LocalGlasseBackdrop.current.takeIf { on }
 }

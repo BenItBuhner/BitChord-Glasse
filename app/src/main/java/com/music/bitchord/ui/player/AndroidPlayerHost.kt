@@ -1,5 +1,6 @@
 package com.music.bitchord.ui.player
 
+import com.benitbuhner.liquidglass.glassOverlay
 import com.music.bitchord.wear.WearBridge
 import android.content.Context
 import android.database.ContentObserver
@@ -168,6 +169,8 @@ class AndroidPlayerHost(context: Context) : PlayerHost {
         // playing, so none of them is lit; the Cast or watch row is.
         return if (cast.casting || watch.active) outputs.map { it.copy(isActive = false) } else outputs
     }
+
+    override fun overlayLayer(modifier: Modifier): Modifier = modifier.glassOverlay()
 
     @Composable
     override fun rememberOutputPicker(onOpen: () -> Unit): () -> Unit = rememberAndroidOutputPicker(onOpen)

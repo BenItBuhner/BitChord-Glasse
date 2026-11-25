@@ -112,8 +112,10 @@ internal fun FrostedPlayerFrame(
                 content = content,
             )
         }
-        CompositionLocalProvider(LocalPlayerFrost provides frost?.takeIf { !live }) {
-            overlays()
+        Box(PlayerPlatform.host.overlayLayer(Modifier.fillMaxSize())) {
+            CompositionLocalProvider(LocalPlayerFrost provides frost?.takeIf { !live }) {
+                overlays()
+            }
         }
     }
 }
