@@ -173,6 +173,13 @@ interface PlayerHost {
     fun rememberPlayerFrost(): PlayerFrost? = null
 
     /**
+     * Marks the layer the player's drawers and dialogs are drawn in as sitting
+     * above the player's own glass buttons, where the platform's glass needs
+     * to be told (Glassé's `glassOverlay`).
+     */
+    fun overlayLayer(modifier: Modifier): Modifier = modifier
+
+    /**
      * Whether lines can be put on a share card here. False hides the pick mode
      * altogether rather than offering a mode with nowhere to put its result.
      */

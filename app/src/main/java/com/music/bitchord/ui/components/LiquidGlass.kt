@@ -72,8 +72,6 @@ internal val LocalGlassExport = compositionLocalOf<LayerBackdrop?> { null }
  */
 fun isGlassSupported(sdkInt: Int = Build.VERSION.SDK_INT): Boolean = sdkInt >= Build.VERSION_CODES.S
 
-/** The veil of [lightweightLiquidGlass], which draws no backdrop of its own. */
-private const val SURFACE_OPACITY = 0.4f
 
 /**
  * The hairline along a bar's edge, and what stands in for the glass rim
@@ -116,66 +114,6 @@ fun glassIndicatorColor(): Color =
 
 /** The selected tab's pill in dark theme, a step whiter than the bar. */
 private const val DARK_INDICATOR_OPACITY = 0.14f
-
-/**
- * A lightweight visual match for liquid glass over a stable background.
- *
- * This keeps the same translucent tint, directional highlight and hairline as
- * [liquidGlass], but intentionally performs no backdrop capture, blur, lens
- * refraction or shadow rendering. When Liquid Glass is disabled or unsupported,
- * [fallbackColor] preserves the control's existing filled appearance.
- */
-@Composable
-fun Modifier.lightweightLiquidGlass(
-    shape: CornerBasedShape,
-    fallbackColor: Color,
-): Modifier {
-    val useGlass = LocalLiquidGlassEnabled.current && isGlassSupported()
-    val glassTint = if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
-        Color(0xFFFAFAFA)
-    } else {
-        Color(0xFF121212)
-    }
-    val shapeProvider = ShapeProvider { shape }
-
-    return clip(shape)
-        .background(
-            color = if (useGlass) glassTint.copy(alpha = SURFACE_OPACITY) else fallbackColor,
-            shape = shape,
-        )
-        .then(
-            if (useGlass) {
-                HighlightElement(
-                    shapeProvider = shapeProvider,
-                    highlight = { Highlight.Default },
-                )
-            } else {
-                Modifier
-            },
-        )
-        .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, shape)
-}
-
-/**
- * Just the rim of liquid glass — the directional [Highlight] that catches the
- * light along a glass edge — for a control that keeps its own fill.
- *
- * Over a flat, stable page the blur and lens of [liquidGlass] would sample a
- * single colour and change nothing a reader could see; the rim is the part
- * that reads as glass. No backdrop capture, so it costs a stroke. Nothing at
- * all while Liquid Glass is off or unsupported.
- */
-@Composable
-fun Modifier.liquidGlassRim(shape: CornerBasedShape): Modifier {
-    if (!LocalLiquidGlassEnabled.current || !isGlassSupported()) return this
-    val shapeProvider = remember(shape) { ShapeProvider { shape } }
-    return then(
-        HighlightElement(
-            shapeProvider = shapeProvider,
-            highlight = { Highlight.Default },
-        ),
-    )
-}
 
 /**
  * The page the Glassé glass refracts: the same recording as [LocalAppBackdrop]
@@ -282,32 +220,6 @@ fun Modifier.pageGlassSource(backdrop: LayerBackdrop): Modifier {
  */
 fun Modifier.screenGlassSource(backdrop: GlasseBackdrop, floor: Color? = null): Modifier =
     backdropSource(backdrop).then(if (floor != null) Modifier.drawBehind { drawRect(floor) } else Modifier)
-
-/**
- * A control's fill as Liquid Glass while it is on: Glassé glass tinted with
- * [fill], refracting the page around it (glass inside the page is drawn over
- * the page's recording, so it never samples itself). With glass off, or blur
- * reduced, it is [fill] and [edge] as they always were.
- */
-@Composable
-fun Modifier.glassControl(
-    shape: CornerBasedShape,
-    fill: Color,
-    edge: Color? = null,
-    pressed: () -> Float = NoPress,
-): Modifier {
-    val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
-    val on = LocalLiquidGlassEnabled.current && isGlassSupported() && !reduceDynamicBlur &&
-        LocalGlasseBackdrop.current != null
-    return if (on) {
-        // a Glassé control: it presses, follows and stretches toward the finger, as every Glassé button does
-        val touch = com.benitbuhner.liquidglass.rememberGlassInteraction()
-        liquidGlass(shape, surfaceTint = fill, pressed = pressed, interaction = touch)
-            .glassTouch(touch)
-    } else {
-        background(fill, shape).then(if (edge != null) Modifier.border(1.dp, edge, shape) else Modifier)
-    }
-}
 
 /**
  * A floating panel's material (a dialog card, a picker, the profile switcher, the

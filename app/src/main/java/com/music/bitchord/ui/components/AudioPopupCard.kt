@@ -65,6 +65,30 @@ internal fun AudioPopupCard(
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val frost = LocalPlayerFrost.current
 
+    if (LocalLiquidGlassEnabled.current && !reduceDynamicBlur && com.benitbuhner.liquidglass.LocalGlassHost.current != null) {
+        // Liquid Glass: Glassé's own alert, in the player's Glassé host, so it sits over everything on the player
+        // (its glass buttons too) and refracts it. The body rides in the alert's content slot.
+        com.benitbuhner.liquidglass.GlassAlert(
+            visible = true,
+            onDismiss = onDismiss,
+            title = title,
+            message = subtitle,
+            actions = listOf(
+                com.benitbuhner.liquidglass.GlassAlertAction(doneLabel, com.benitbuhner.liquidglass.AlertActionStyle.Cancel),
+            ),
+            style = com.benitbuhner.liquidglass.AlertStyle.Center,
+            content = {
+                Box(
+                    modifier = Modifier
+                        .heightIn(max = POPUP_CONTENT_MAX_HEIGHT)
+                        .verticalScroll(rememberScrollState()),
+                    content = content,
+                )
+            },
+        )
+        return
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()

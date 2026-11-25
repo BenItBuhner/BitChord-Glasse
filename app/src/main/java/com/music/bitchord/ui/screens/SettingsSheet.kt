@@ -496,6 +496,7 @@ fun SettingsScreen(
                         subtitle = account?.email?.takeIf { it.isNotBlank() }
                             ?: stringResource(if (signedIn) R.string.signed_in else R.string.not_signed_in),
                         onClick = onAccountScrobbling,
+                        keepSubtitle = true,
                     )
                 }
                 // Sits with the account rather than with Playback: a party is up to
@@ -2758,6 +2759,9 @@ internal fun SettingsRow(
     iconContent: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
+    /** Liquid Glass: iOS Settings rows carry no description, so [subtitle] shows only where it is the row's own
+     *  state (the account's address), not an explanation of the setting */
+    keepSubtitle: Boolean = false,
 ) {
     if (glassSettings()) {
         // Glassé's Settings row: a coloured icon tile, the label and its subtitle, and the value and
@@ -2770,7 +2774,7 @@ internal fun SettingsRow(
             chevron = trailing == null && onClick != null,
             divider = false,
             onClick = onClick,
-            subtitle = subtitle,
+            subtitle = subtitle.takeIf { keepSubtitle },
             leading = iconContent ?: iconPainter?.let { p ->
                 {
                     Box(
@@ -2889,7 +2893,6 @@ internal fun SettingsSubRow(
             modifier = Modifier.padding(start = indent),
             divider = false,
             onClick = { onCheckedChange(!checked) },
-            subtitle = subtitle,
             labelTrailing = badge?.let { b -> { Badge(b) } },
             enabled = enabled,
             trailing = { IosSwitch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled) },
@@ -2987,7 +2990,6 @@ internal fun SliderRow(
                 iconColor = settingsTileColor(title),
                 value = value,
                 divider = false,
-                subtitle = subtitle,
             )
             com.benitbuhner.liquidglass.GlassSlider(
                 value = sliderValue,
