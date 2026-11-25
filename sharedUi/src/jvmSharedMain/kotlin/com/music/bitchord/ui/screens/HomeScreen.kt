@@ -171,6 +171,7 @@ fun HomeScreen(
         onRefresh = onRefresh,
         state = pullState,
         modifier = modifier,
+        topInset = if (title != null) (contentPadding.calculateTopPadding() - HOME_TITLE_LIFT).coerceAtLeast(0.dp) else contentPadding.calculateTopPadding(),
     ) {
         LazyColumn(
             state = listState,

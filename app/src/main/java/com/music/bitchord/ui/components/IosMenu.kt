@@ -663,7 +663,7 @@ fun <T : Any> IosMenuPopover(
  */
 /** Whether menus are Glassé morphs right now: glass on, and neither blur nor motion reduced. */
 @Composable
-internal fun glassMenusOn(reduceMotion: Boolean? = null): Boolean {
+internal fun glassMenusOn(reduceMotion: Boolean? = null, enabled: Boolean = LocalLiquidGlassEnabled.current): Boolean {
     val reduced = reduceMotion ?: run {
         val context = LocalContext.current
         val app by AppSettings.reduceAnimation.collectAsStateWithLifecycle()
@@ -675,7 +675,7 @@ internal fun glassMenusOn(reduceMotion: Boolean? = null): Boolean {
         app || system
     }
     val reduceDynamicBlur by AppSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
-    return !reduced && !reduceDynamicBlur && LocalLiquidGlassEnabled.current && isGlassSupported()
+    return !reduced && !reduceDynamicBlur && enabled && isGlassSupported()
 }
 
 @Composable
@@ -697,6 +697,30 @@ private fun <T : Any> GlassMenuPanel(
         CompositionLocalProvider(LocalMenuCollector provides collector) {
             Column { content(item) }
         }
+    }
+    // Opened from a Glassé menu button: the menu is that button's own (one element, as the demo's). The rows go
+    // to it and nothing is drawn here.
+    val owned = remember { arrayOfNulls<GlassMenus.Owner>(1) }
+    GlassMenus.claim(anchor)?.let { owned[0] = it }
+    val owner = owned[0]
+    if (owner != null) {
+        val rows = collector.custom == 0
+        val wanted = open && rows && collector.ready
+        val items = collector.items
+        val wasUp = remember { booleanArrayOf(false) }
+        SideEffect {
+            owner.dismiss = onDismiss
+            owner.gone = { if (!open) onGone() }
+            if (rows) owner.items = items
+            owner.open = wanted
+            if (wanted) wasUp[0] = true
+        }
+        DisposableEffect(owner) {
+            onDispose { owner.open = false; owner.dismiss = {}; owner.gone = {} }
+        }
+        // let go of before its rows were ever up: nothing will drain, so it is gone now
+        LaunchedEffect(open) { if (!open && !wasUp[0]) onGone() }
+        if (rows) return
     }
     if (collector.custom == 0) {
         GlasseRowsMenu(collector, anchor, open, onDismiss, glass, triggerIcon, onGone, bareTrigger)

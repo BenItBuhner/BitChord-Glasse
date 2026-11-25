@@ -526,6 +526,14 @@ class MainActivity : AppCompatActivity() {
                     LocalLiquidGlassEnabled provides liquidGlassEnabled,
                     // Liquid Glass: a ⋮ / ⋯ opens its menu on a hold or a drag too, and the finger picks a row (Glassé)
                     com.music.bitchord.ui.components.LocalMenuHold provides if (liquidGlassEnabled) glassMenuHold else null,
+                    // Liquid Glass: Glassé's pull to refresh (iOS's spinner in the gap of the rubber band), not Material's
+                    com.music.bitchord.ui.components.LocalPullToRefresh provides if (liquidGlassEnabled) glassePullToRefresh else null,
+                    // Liquid Glass: a search field is a glass capsule (Glassé's GlassSurface), not a grey fill
+                    com.music.bitchord.ui.components.LocalSearchFieldSurface provides
+                        if (liquidGlassEnabled && com.music.bitchord.ui.components.isGlassSupported()) remember(glasseBackdrop) { glasseSearchSurface(glasseBackdrop) } else null,
+                    // Liquid Glass: every ⋯ is Glassé's menu button, one element with its menu
+                    com.music.bitchord.ui.components.LocalMenuButton provides
+                        if (glassMenusOn(enabled = liquidGlassEnabled)) remember(glasseBackdrop) { com.music.bitchord.ui.components.glasseMenuButtonSlot(glasseBackdrop) } else null,
                     // Liquid Glass: every segmented control is Glassé's (the demo's own selection lens)
                     com.music.bitchord.ui.components.LocalGlassSegmented provides if (liquidGlassEnabled && com.music.bitchord.ui.components.isGlassSupported()) GlasseSegmented else null,
                     LocalAppBackdrop provides appBackdrop,
@@ -4152,6 +4160,7 @@ private fun BitChordApp(
                     // circles over the shared gradient — no full-width pane.
                     transparentBackdrop = true,
                     artworkPageChrome = true,
+                    scrollEdge = detail == null,
                     backButtonHazeState = hazeState,
                     trailingTitle = if (detail != null && detailActiveShelf != null) detail.title else null,
                     // Search has no large in-list header to hand the title back to —
@@ -5200,9 +5209,11 @@ private fun BitChordApp(
                         // the player is), refracting the player; the ⋯ turns into its menu (see menuAnchor).
                         val glassDisc = rememberPlayerGlassDisc(playerGlass.takeIf { glassSamplesBackdrop })
                         val glassCapsule = rememberPlayerGlassCapsule(playerGlass.takeIf { glassSamplesBackdrop })
+                        val playerMenuButton = rememberPlayerMenuButton(playerGlass.takeIf { glassSamplesBackdrop && glassMenusOn() })
                         CompositionLocalProvider(
                             LocalPlayerDock provides activeDock,
                             LocalPlayerGlassDisc provides glassDisc,
+                            com.music.bitchord.ui.components.LocalMenuButton provides playerMenuButton,
                             com.music.bitchord.ui.player.LocalPlayerGlassCapsule provides glassCapsule,
                         ) {
                             nowPlaying(playerSong)
@@ -6910,6 +6921,20 @@ private fun rememberPlayerGlassDisc(glass: GlasseBackdrop?): (@Composable (Image
     }
 }
 
+/** The player's ⋯ as Glassé's menu button on dark glass: the button turns into the track menu and back. */
+@Composable
+private fun rememberPlayerMenuButton(glass: GlasseBackdrop?): (@Composable (com.music.bitchord.ui.components.MenuButtonSpec) -> Unit)? {
+    if (glass == null) return null
+    val theme = LocalGlassTheme.current.copy(scheme = GlassScheme.Dark)
+    return remember(glass, theme) {
+        val slot = com.music.bitchord.ui.components.glasseMenuButtonSlot(glass)
+        val themed: @Composable (com.music.bitchord.ui.components.MenuButtonSpec) -> Unit = { spec ->
+            CompositionLocalProvider(LocalGlassTheme provides theme) { slot(spec) }
+        }
+        themed
+    }
+}
+
 /** The player's bottom-row capsules (output and party, the queue's play modes) on Glassé's dark glass. */
 @Composable
 private fun rememberPlayerGlassCapsule(glass: GlasseBackdrop?): (@Composable (Modifier, @Composable () -> Unit) -> Unit)? {
@@ -7112,6 +7137,15 @@ private fun destinationStack(top: AppDestination, entries: List<RouteEntry>, det
 @Composable
 private fun GlyphSwap(key: Any, content: @Composable (Any) -> Unit) {
     if (liquidGlassOn()) com.benitbuhner.liquidglass.BlurReplace(key) { content(it) } else content(key)
+}
+
+private val glassePullToRefresh: @Composable (Boolean, () -> Unit, Modifier, androidx.compose.ui.unit.Dp, @Composable () -> Unit) -> Unit =
+    { refreshing, onRefresh, modifier, topInset, content ->
+        com.benitbuhner.liquidglass.GlassPullToRefresh(refreshing, onRefresh, modifier, topInset = topInset, content = content)
+    }
+
+private fun glasseSearchSurface(glass: GlasseBackdrop): @Composable (Modifier, @Composable () -> Unit) -> Unit = { modifier, content ->
+    com.benitbuhner.liquidglass.GlassSurface(glass, modifier, contentAlignment = Alignment.CenterStart) { content() }
 }
 
 private val glassMenuHold: @Composable (() -> Unit) -> Modifier = { open -> Modifier.glassMenuHold(open) }

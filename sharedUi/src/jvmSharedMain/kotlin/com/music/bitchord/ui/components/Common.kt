@@ -661,6 +661,19 @@ fun RowMoreButton(
     tint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     iconSize: Dp = 20.dp,
 ) {
+    // Liquid Glass: the platform's own menu button (Glassé's bare ⋯: the menu's glass grows out of this glyph and
+    // drains back into it), one element with its menu
+    LocalMenuButton.current?.let { button ->
+        button(
+            MenuButtonSpec(
+                onOpen = onClick,
+                contentDescription = stringResource(Res.string.more),
+                modifier = modifier.leftOutOfHeldPicture().hangIntoGutter(ROW_MORE_OUTSET).menuPressGuard(),
+                bare = true, tint = tint, size = 36.dp, iconSize = iconSize,
+            ),
+        )
+        return
+    }
     Box(
         modifier = modifier
             .leftOutOfHeldPicture()
@@ -820,6 +833,11 @@ fun DownloadedBadge(videoId: String, tint: Color, modifier: Modifier = Modifier)
  * is why [state] is hoisted: the bar lives beside this content, not inside it,
  * and has to follow the same drag.
  */
+/** A design system's own pull to refresh (Glassé's, iOS's spinner on the rubber band) in place of Material's. */
+val LocalPullToRefresh = androidx.compose.runtime.staticCompositionLocalOf<
+    (@Composable (refreshing: Boolean, onRefresh: () -> Unit, modifier: Modifier, topInset: Dp, content: @Composable () -> Unit) -> Unit)?,
+> { null }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PullToRefresh(
@@ -827,10 +845,17 @@ fun PullToRefresh(
     onRefresh: () -> Unit,
     state: PullToRefreshState,
     modifier: Modifier = Modifier,
+    /** where the page's content starts (under a floating bar): a design system's own refresh spinner sits there */
+    topInset: Dp = 0.dp,
     content: @Composable () -> Unit,
 ) {
     if (!LocalPullToRefreshEnabled.current) {
         Box(modifier.fillMaxSize()) { content() }
+        return
+    }
+    val system = LocalPullToRefresh.current
+    if (system != null) {
+        system(refreshing, onRefresh, modifier.fillMaxSize(), topInset, content)
         return
     }
     PullToRefreshBox(

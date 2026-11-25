@@ -74,6 +74,7 @@ fun ExploreScreen(
         onRefresh = onRefresh,
         state = pullState,
         modifier = modifier,
+        topInset = contentPadding.calculateTopPadding(),
     ) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val columns = moodColumns(maxWidth)

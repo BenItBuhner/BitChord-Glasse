@@ -184,6 +184,8 @@ fun FrostedTopBar(
     // A lambda, not a value: the drag changes every frame, and reading it in
     // the caller would recompose the whole app on each one.
     pullFraction: () -> Float = { 0f },
+    /** a plain page (not artwork to its top edge): Glassé's scroll edge fades it out under the bar and status bar */
+    scrollEdge: Boolean = false,
     /**
      * A page control filling the bar from the leading gutter to [actions] — the
      * Search tab's field — set on a pill of its own; see [AccessoryPill].
@@ -213,8 +215,15 @@ fun FrostedTopBar(
         label = "topBarDivider",
     )
 
+    // Liquid Glass: Glassé's scroll edge under the bar's buttons (iOS 26's soft fade), so a page scrolling up
+    // under them and the status bar blurs out instead of running through the clock.
+    val edgeGlass = LocalGlasseBackdrop.current.takeIf { scrollEdge && !reduceDynamicBlur && LocalLiquidGlassEnabled.current && isGlassSupported() }
+    Box(modifier.fillMaxWidth()) {
+    if (edgeGlass != null) {
+        com.benitbuhner.liquidglass.GlassScrollEdge(edgeGlass, MaterialTheme.colorScheme.background, scrolled = scrolled())
+    }
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
             .then(
                 if (reduceDynamicBlur && !transparentBackdrop) {
@@ -364,7 +373,9 @@ fun FrostedTopBar(
             }
         }
         HorizontalDivider(thickness = 0.5.dp, color = dividerColor)
-        RefreshPuck(refreshing = refreshing, pullFraction = pullFraction)
+        // Liquid Glass: the page's own spinner (Glassé's pull to refresh) shows the refresh
+        if (!LocalLiquidGlassEnabled.current) RefreshPuck(refreshing = refreshing, pullFraction = pullFraction)
+    }
     }
 }
 
@@ -388,6 +399,11 @@ fun TopBarAction(
     content: @Composable () -> Unit,
 ) {
     val glass = LocalTopBarGlass.current
+    if (glass != null && menuTrigger && glassMenusOn()) {
+        // Glassé's menu button: the button is the menu (see GlassMenus)
+        GlasseMenuButton(onOpen = onClick, backdrop = glass, contentDescription = null, modifier = modifier, size = TOP_CONTROL_SIZE, face = content)
+        return
+    }
     val anchor = if (menuTrigger) Modifier.menuAnchor(onClick) else Modifier
     if (glass != null) {
         GlassButton(onClick, glass, modifier.then(anchor).size(TOP_CONTROL_SIZE), contentPadding = PaddingValues(0.dp)) {

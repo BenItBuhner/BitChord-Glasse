@@ -3,6 +3,11 @@ package com.music.bitchord.ui.components
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
@@ -37,7 +42,7 @@ object MenuAnchor {
 
     private var bareBounds: Rect? = null
 
-    internal fun record(bounds: Rect, bare: Boolean = false) {
+    fun record(bounds: Rect, bare: Boolean = false) {
         this.bounds = bounds
         recordedAt = System.nanoTime()
         bareBounds = if (bare) bounds else null
@@ -118,6 +123,40 @@ fun Modifier.menuAnchor(
                 } finally { MenuAnchor.pressed = false }
             }
         }
+}
+
+/**
+ * What a ⋮ or ⋯ asks of a design system's own menu button: [onOpen] opens the menu (the app then shows its
+ * rows), [icon] is the glyph when it is not the plain ellipsis, [bare] a glyph with no disc of its own (a row's).
+ */
+@Immutable
+class MenuButtonSpec(
+    val onOpen: () -> Unit,
+    val contentDescription: String?,
+    val modifier: Modifier = Modifier,
+    val icon: ImageVector? = null,
+    val bare: Boolean = false,
+    val tint: Color = Color.Unspecified,
+    val size: Dp = 44.dp,
+    val iconSize: Dp = Dp.Unspecified,
+)
+
+/**
+ * Set by a platform whose menus are a design system's (Liquid Glass: Glassé's `GlassMenuButton`, where the button
+ * and the menu are one element: the menu pulls out of the button and drains back into it). Every ⋮ and ⋯ is then
+ * that component, not a button of the app's with a menu laid over it. Null keeps the app's own buttons.
+ */
+val LocalMenuButton = staticCompositionLocalOf<(@Composable (MenuButtonSpec) -> Unit)?> { null }
+
+/** A finger on a design system's menu button is the button's: the row around it is not being held. */
+fun Modifier.menuPressGuard(): Modifier = pointerInput(Unit) {
+    awaitEachGesture {
+        awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+        MenuAnchor.pressed = true
+        try {
+            do { val e = awaitPointerEvent(PointerEventPass.Initial) } while (e.changes.any { it.pressed })
+        } finally { MenuAnchor.pressed = false }
+    }
 }
 
 private class AnchorCoordinates {

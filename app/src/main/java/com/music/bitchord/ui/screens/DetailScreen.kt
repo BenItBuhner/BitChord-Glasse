@@ -1224,16 +1224,16 @@ private fun DetailSearchField(
         }
     }
 
+    // Liquid Glass: the field is Glassé's glass capsule (the app's search surface), not a tinted imitation of one
+    val glassSurface = com.music.bitchord.ui.components.LocalSearchFieldSurface.current
+    val place = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = HEADER_GUTTER)
+        .padding(bottom = 10.dp)
+        .height(46.dp)
+    val field: @Composable (Modifier) -> Unit = { rowModifier ->
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = HEADER_GUTTER)
-            .padding(bottom = 10.dp)
-            .height(46.dp)
-            .clip(PILL_SHAPE)
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
-            .border(0.5.dp, Color.White.copy(alpha = 0.10f), PILL_SHAPE)
-            .padding(horizontal = 12.dp),
+        modifier = rowModifier.padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -1283,6 +1283,17 @@ private fun DetailSearchField(
                 modifier = Modifier.size(17.dp),
             )
         }
+    }
+    }
+    if (glassSurface != null) {
+        glassSurface(place) { field(Modifier.fillMaxSize()) }
+    } else {
+        field(
+            place
+                .clip(PILL_SHAPE)
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
+                .border(0.5.dp, Color.White.copy(alpha = 0.10f), PILL_SHAPE),
+        )
     }
 }
 

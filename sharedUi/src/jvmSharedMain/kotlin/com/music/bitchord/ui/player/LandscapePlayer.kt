@@ -528,7 +528,8 @@ internal fun LandscapeCredits(
                 icon = if (showRevertCue) Icons.AutoMirrored.Rounded.Undo else Icons.Rounded.MoreHoriz,
                 contentDescription = stringResource(Res.string.more),
                 onClick = onOpenMenu,
-                modifier = Modifier.menuAnchor(onOpenMenu),
+                modifier = if (com.music.bitchord.ui.components.LocalMenuButton.current != null) Modifier else Modifier.menuAnchor(onOpenMenu),
+                opensMenu = true,
             )
         }
     }
