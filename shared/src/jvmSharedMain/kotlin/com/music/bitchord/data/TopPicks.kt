@@ -5,6 +5,8 @@ import com.music.bitchord.data.model.ArtistPage
 import com.music.bitchord.data.model.ArtistRef
 import com.music.bitchord.data.model.HomeShelf
 import com.music.bitchord.data.model.ShelfItem
+import com.music.bitchord.data.model.SearchFilter
+import com.music.bitchord.data.model.SearchResult
 import com.music.bitchord.data.model.Song
 import com.music.bitchord.data.model.TopPick
 import com.music.bitchord.data.model.TopPickKind
@@ -454,26 +456,41 @@ object TopPicks {
      */
     private suspend fun moodQueue(pick: TopPick): Result<List<Song>> = coroutineScope {
         val mood = pick.mood ?: return@coroutineScope Result.failure(IllegalStateException("mood card without a mood"))
+        // YouTube rotates the categories' params: when the built-in ones are refused, the Moods & moments
+        // page says what the category is called now; failing that, its playlists are found by search (a tap
+        // played nothing when the category request was refused)
         val shelves = YtMusicRepository.moodGenreShelves(TopPickMood.CATEGORY_BROWSE_ID, mood.params)
-            .getOrElse { return@coroutineScope Result.failure(it) }
+            .recoverCatching { first ->
+                val live = YtMusicRepository.moodAndGenres().getOrThrow()
+                    .flatMap { it.items }
+                    .firstOrNull { it.title.equals(mood.categoryTitle, ignoreCase = true) } ?: throw first
+                YtMusicRepository.moodGenreShelves(live.browseId, live.params).getOrThrow()
+            }
         val playlists = { shelf: HomeShelf -> shelf.items.filter { it.browseId?.startsWith("VL") == true } }
-        val candidates = shelves.filter { playlists(it).isNotEmpty() }
-        val score = { shelf: HomeShelf ->
-            val title = shelf.title.lowercase(Locale.ROOT)
-            2 * mood.shelfWords.count { it in title } + pick.hints.count { it.isNotBlank() && it in title }
+        val chosen: List<String> = shelves.getOrNull()?.let { list ->
+            val candidates = list.filter { playlists(it).isNotEmpty() }
+            val score = { shelf: HomeShelf ->
+                val title = shelf.title.lowercase(Locale.ROOT)
+                2 * mood.shelfWords.count { it in title } + pick.hints.count { it.isNotBlank() && it in title }
+            }
+            val best = candidates.maxOfOrNull(score) ?: return@let null
+            // With no scene in common, any shelf of the mood will do.
+            val shelf = candidates.filter { score(it) == best }.random()
+            playlists(shelf).take(6).shuffled().take(MOOD_PLAYLISTS).mapNotNull { it.browseId }
+        } ?: run {
+            val words = (listOf(mood.categoryTitle) + mood.shelfWords.take(1)).joinToString(" ")
+            YtMusicRepository.search("$words playlist", SearchFilter.PLAYLISTS).getOrNull().orEmpty()
+                .mapNotNull { (it as? SearchResult.Browse)?.item?.takeIf { item -> item.browseId?.startsWith("VL") == true }?.browseId }
+                .take(6).shuffled().take(MOOD_PLAYLISTS)
+                .ifEmpty { return@coroutineScope Result.failure(shelves.exceptionOrNull() ?: IllegalStateException("no playlists for $mood")) }
         }
-        val best = candidates.maxOfOrNull(score)
-            ?: return@coroutineScope Result.failure(IllegalStateException("no playlists for $mood"))
-        // With no scene in common, any shelf of the mood will do.
-        val shelf = candidates.filter { score(it) == best }.random()
-        val chosen = playlists(shelf).take(6).shuffled().take(MOOD_PLAYLISTS)
-        val songs = chosen.map { item ->
+        val songs = chosen.map { browseId ->
             async {
-                val playlistId = item.browseId!!.removePrefix("VL")
+                val playlistId = browseId.removePrefix("VL")
                 // As a watch queue, so YouTube hands over each official video's
                 // song version directly; the playlist page only lists videos.
                 YtMusicRepository.playlistAsAudio(playlistId).getOrNull()?.takeIf { it.isNotEmpty() }
-                    ?: YtMusicRepository.browseSongs(item.browseId!!).getOrNull()?.songs.orEmpty()
+                    ?: YtMusicRepository.browseSongs(browseId).getOrNull()?.songs.orEmpty()
             }
         }.awaitAll().flatten()
             // A row YouTube couldn't pair stays the video, and plays as one;

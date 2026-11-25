@@ -338,13 +338,14 @@ fun FrostedTopBar(
                     .padding(end = edge),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                val glasse = LocalGlasseBackdrop.current
                 if (accessory != null) {
                     Box(Modifier.weight(1f)) {
-                        AccessoryPill(content = accessory)
+                        val onGlass = useFloatingChrome && LocalLiquidGlassEnabled.current && isGlassSupported() && !reduceDynamicBlur
+                        AccessoryPill(glass = if (onGlass) glasse else null, content = accessory)
                     }
                     Spacer(Modifier.width(ACCESSORY_GAP))
                 }
-                val glasse = LocalGlasseBackdrop.current
                 if (useFloatingChrome && LocalLiquidGlassEnabled.current && isGlassSupported() && !reduceDynamicBlur && glasse != null) {
                     // Liquid Glass: each action is a Glassé button of its own, 10 dp apart (iOS 26's bar
                     // group, the demo's GlassGroup gap), each pressing, following and stretching on its own,
@@ -518,16 +519,23 @@ private fun ActionsRow(modifier: Modifier, content: @Composable () -> Unit) {
 }
 
 /**
- * The bar's accessory — the Search tab's field — as a squircle pill at the
- * height of the controls beside it, in the field's own solid fill.
- *
- * Deliberately the same with Liquid Glass on as off: the field is somewhere
- * to type, and on glass its hint and text took the glass's content colour
- * over whatever page was scrolling under it. The controls beside it still
- * follow the glass setting.
+ * The bar's accessory — the Search tab's field — as a capsule at the height of
+ * the controls beside it. With Liquid Glass on it is Glassé's glass (iOS 26's
+ * toolbar search field), the same glass as the buttons beside it; off, the
+ * field's own solid fill.
  */
 @Composable
-private fun AccessoryPill(content: @Composable () -> Unit) {
+private fun AccessoryPill(glass: GlasseBackdrop? = null, content: @Composable () -> Unit) {
+    if (glass != null) {
+        com.benitbuhner.liquidglass.GlassSurface(
+            glass,
+            Modifier.fillMaxWidth().height(TOP_CONTROL_SIZE),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            CompositionLocalProvider(LocalSearchFieldOnSurface provides true, content = content)
+        }
+        return
+    }
     val shape = remember { SquirclePillShape() }
     Box(
         modifier = Modifier
