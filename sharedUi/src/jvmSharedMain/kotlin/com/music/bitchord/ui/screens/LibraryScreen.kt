@@ -126,6 +126,7 @@ fun LibraryScreen(
         onRefresh = onRefresh,
         state = pullState,
         modifier = modifier,
+        topInset = contentPadding.calculateTopPadding(),
     ) {
         LazyColumn(
             state = listState,

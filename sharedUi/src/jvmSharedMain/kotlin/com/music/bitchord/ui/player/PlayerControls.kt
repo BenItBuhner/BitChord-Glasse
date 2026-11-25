@@ -77,6 +77,7 @@ import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.CastConnected
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Headphones
+import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Tv
 import androidx.compose.material.icons.rounded.Watch
@@ -1037,8 +1038,23 @@ internal fun CircleGlyph(
     active: Boolean = false,
     haptic: Haptic = Haptic.Tap,
     modifier: Modifier = Modifier,
+    /** it opens the track menu: with a design system's menus it is that system's menu button, one element with the menu */
+    opensMenu: Boolean = false,
 ) {
     val haptics = rememberHaptics()
+    val menuButton = com.music.bitchord.ui.components.LocalMenuButton.current
+    if (opensMenu && menuButton != null) {
+        menuButton(
+            com.music.bitchord.ui.components.MenuButtonSpec(
+                onOpen = { haptics.play(haptic); onClick() },
+                contentDescription = contentDescription,
+                modifier = modifier,
+                icon = icon.takeIf { it != Icons.Rounded.MoreHoriz },
+                tint = Color.White,
+            ),
+        )
+        return
+    }
     val glassDisc = LocalPlayerGlassDisc.current
     if (glassDisc != null) {
         // Liquid Glass on: the platform's own glass button (Glassé on Android), which presses, follows,

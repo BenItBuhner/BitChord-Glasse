@@ -4311,7 +4311,8 @@ fun NowPlayingScreen(
                                     } else {
                                         Haptic.Tap
                                     },
-                                    modifier = Modifier.menuAnchor(onOpenMenu.takeIf { showRevertCue || !lyricsShareGlyphVisible }),
+                                    modifier = if (com.music.bitchord.ui.components.LocalMenuButton.current != null) Modifier else Modifier.menuAnchor(onOpenMenu.takeIf { showRevertCue || !lyricsShareGlyphVisible }),
+                                    opensMenu = showRevertCue || !lyricsShareGlyphVisible,
                                 )
                             }
                         }

@@ -48,6 +48,9 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
  */
 val LocalSearchFieldOnSurface = staticCompositionLocalOf { false }
 
+/** The surface a search field sits on when a design system has its own (Glassé: a glass capsule). */
+val LocalSearchFieldSurface = staticCompositionLocalOf<(@Composable (Modifier, @Composable () -> Unit) -> Unit)?> { null }
+
 /** iOS's tertiary system fill (a search field's own fill): it shows on a white page and on a grouped grey one alike,
  *  where the theme's surfaceVariant matched the grey page and the field vanished. */
 @Composable
@@ -71,6 +74,16 @@ fun SearchField(
     placeholder: String = stringResource(Res.string.search_hint),
     modifier: Modifier = Modifier,
 ) {
+    // a design system's own field surface (Glassé's glass capsule) in place of the grey fill
+    val surface = LocalSearchFieldSurface.current
+    if (surface != null && !LocalSearchFieldOnSurface.current) {
+        surface(modifier.fillMaxWidth().height(44.dp)) {
+            androidx.compose.runtime.CompositionLocalProvider(LocalSearchFieldOnSurface provides true) {
+                SearchField(query, onQueryChange, onSubmit, focusRequester, placeholder)
+            }
+        }
+        return
+    }
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     // Both ways of saying "search this" do the same two things, so they're
