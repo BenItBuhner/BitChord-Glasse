@@ -248,7 +248,7 @@ private fun LanguageRow(language: AppLanguage, selected: Boolean, onClick: () ->
         )
         if (selected) {
             Icon(
-                imageVector = Icons.Rounded.Check,
+                imageVector = com.music.bitchord.ui.icons.Symbols.of("check", Icons.Rounded.Check),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(19.dp),

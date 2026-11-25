@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package com.music.bitchord
 
 import com.benitbuhner.liquidglass.groupedBackground
@@ -519,6 +521,10 @@ class MainActivity : AppCompatActivity() {
                 val glasseBackdrop = rememberGlasseBackdrop(pageLayer)
                 // Everything under the menus and alerts: the page, its bars, the mini player.
                 val screenGlass = rememberGlasseBackdrop()
+                // Liquid Glass: the common glyphs (close, tick, person, share, trash, chevrons...) are Glassé's
+                // SF Symbols-style set instead of Material's icons
+                com.music.bitchord.ui.icons.Symbols.provider =
+                    if (liquidGlassEnabled) { name -> runCatching { com.benitbuhner.liquidglass.GlassIcons.symbol(name) }.getOrNull() } else null
                 CompositionLocalProvider(
                     // Liquid Glass: Glassé's own scroll bounce (the kit's UIScrollView rubber band) for every list.
                     LocalOverscrollFactory provides
@@ -528,6 +534,14 @@ class MainActivity : AppCompatActivity() {
                     com.music.bitchord.ui.components.LocalMenuHold provides if (liquidGlassEnabled) glassMenuHold else null,
                     // Liquid Glass: Glassé's pull to refresh (iOS's spinner in the gap of the rubber band), not Material's
                     com.music.bitchord.ui.components.LocalPullToRefresh provides if (liquidGlassEnabled) glassePullToRefresh else null,
+                    // Liquid Glass: a touch highlights what it presses and fades (Glassé's press highlight), never
+                    // Material's ripple, the most Android thing on any screen
+                    androidx.compose.foundation.LocalIndication provides
+                        if (liquidGlassEnabled) com.benitbuhner.liquidglass.GlassPressHighlight else androidx.compose.foundation.LocalIndication.current,
+                    androidx.compose.material3.LocalRippleConfiguration provides
+                        if (liquidGlassEnabled) null else androidx.compose.material3.LocalRippleConfiguration.current,
+                    // Liquid Glass: every spinner is Glassé's activity indicator (iOS's spokes), not Material's ring
+                    com.music.bitchord.ui.components.LocalActivityIndicator provides if (liquidGlassEnabled) glasseSpinner else null,
                     // Liquid Glass: a search field is a glass capsule (Glassé's GlassSurface), not a grey fill
                     com.music.bitchord.ui.components.LocalSearchFieldSurface provides
                         if (liquidGlassEnabled && com.music.bitchord.ui.components.isGlassSupported()) remember(glasseBackdrop) { glasseSearchSurface(glasseBackdrop) } else null,
@@ -4345,7 +4359,7 @@ private fun BitChordApp(
                                             DropdownMenuItem(
                                                 text = { Text(option.localizedLabel()) },
                                                 trailingIcon = if (option == librarySort) {
-                                                    { Icon(Icons.Rounded.Check, contentDescription = null) }
+                                                    { Icon(com.music.bitchord.ui.icons.Symbols.of("check", Icons.Rounded.Check), contentDescription = null) }
                                                 } else null,
                                                 onClick = {
                                                     AppSettings.setLibrarySort(option)
@@ -4373,7 +4387,7 @@ private fun BitChordApp(
                                         GlyphSwap(detailSearching) { k ->
                                             val searching = k == true
                                             Icon(
-                                                if (searching) Icons.Rounded.Close else BitChordIcons.Search,
+                                                if (searching) com.music.bitchord.ui.icons.Symbols.of("xmark", Icons.Rounded.Close) else BitChordIcons.Search,
                                                 contentDescription = stringResource(
                                                     if (searching) R.string.close_search else R.string.search_this_list,
                                                 ),
@@ -4430,7 +4444,7 @@ private fun BitChordApp(
                                         },
                                     ) {
                                         Icon(
-                                            Icons.Rounded.MoreHoriz,
+                                            com.music.bitchord.ui.icons.Symbols.of("more", Icons.Rounded.MoreHoriz),
                                             contentDescription = stringResource(R.string.more),
                                             tint = MaterialTheme.colorScheme.onSurface,
                                         )
@@ -4456,7 +4470,7 @@ private fun BitChordApp(
                                     },
                                 ) {
                                     Icon(
-                                        Icons.Rounded.IosShare,
+                                        com.music.bitchord.ui.icons.Symbols.of("share", Icons.Rounded.IosShare),
                                         contentDescription = stringResource(R.string.share),
                                         tint = MaterialTheme.colorScheme.onSurface,
                                     )
@@ -5341,7 +5355,7 @@ private fun BitChordApp(
             IosMenuPopover(
                 item = songActions?.takeIf { songMenuOrigin == null && !(menuFromPlayer && playerRaised) },
                 anchor = songMenuAnchor,
-                triggerIcon = if (menuFromPlayer) Icons.Rounded.MoreHoriz else Icons.Rounded.MoreVert,
+                triggerIcon = if (menuFromPlayer) com.music.bitchord.ui.icons.Symbols.of("more", Icons.Rounded.MoreHoriz) else com.music.bitchord.ui.icons.Symbols.of("more", Icons.Rounded.MoreVert),
                 // A row's ⋮ is a bare glyph: the glass grows out of it. The player's ⋯ is a glass disc of its own.
                 bareTrigger = !menuFromPlayer,
                 onDismiss = { songActions = null },
@@ -5875,7 +5889,7 @@ private fun BitChordApp(
                     ) {
                         IconButton(onClick = { webSession = null }) {
                             Icon(
-                                Icons.Rounded.Close,
+                                com.music.bitchord.ui.icons.Symbols.of("xmark", Icons.Rounded.Close),
                                 contentDescription = stringResource(R.string.close),
                                 tint = MaterialTheme.colorScheme.onBackground,
                             )
@@ -6286,7 +6300,7 @@ private fun BitChordApp(
                     ) {
                         IconButton(onClick = { showDiscordLogin = false }) {
                             Icon(
-                                Icons.Rounded.Close,
+                                com.music.bitchord.ui.icons.Symbols.of("xmark", Icons.Rounded.Close),
                                 contentDescription = stringResource(R.string.close),
                                 tint = MaterialTheme.colorScheme.onBackground,
                             )
@@ -6323,7 +6337,7 @@ private fun BitChordApp(
                     ) {
                         IconButton(onClick = { showSpotifyLogin = false }) {
                             Icon(
-                                Icons.Rounded.Close,
+                                com.music.bitchord.ui.icons.Symbols.of("xmark", Icons.Rounded.Close),
                                 contentDescription = stringResource(R.string.close),
                                 tint = MaterialTheme.colorScheme.onBackground,
                             )
@@ -6726,7 +6740,7 @@ private fun FrostedMenuRow(
         )
         if (checked) {
             Icon(
-                Icons.Rounded.Check,
+                com.music.bitchord.ui.icons.Symbols.of("check", Icons.Rounded.Check),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
             )
@@ -7159,4 +7173,9 @@ private fun SheetGlassHost(enabled: Boolean, content: @Composable () -> Unit) {
 /** Glassé's segmented control, for [com.music.bitchord.ui.components.LocalGlassSegmented]. */
 private val GlasseSegmented: @Composable (List<String>, Int, (Int) -> Unit, Modifier) -> Unit = { options, selected, onSelect, modifier ->
     com.benitbuhner.liquidglass.GlassSegmented(options = options, selected = selected, onSelect = onSelect, modifier = modifier)
+}
+
+/** Glassé's activity indicator, for [com.music.bitchord.ui.components.LocalActivityIndicator]. */
+private val glasseSpinner: @Composable (Modifier, androidx.compose.ui.graphics.Color) -> Unit = { modifier, color ->
+    com.benitbuhner.liquidglass.GlassActivityIndicator(modifier, size = 26.dp, color = color)
 }

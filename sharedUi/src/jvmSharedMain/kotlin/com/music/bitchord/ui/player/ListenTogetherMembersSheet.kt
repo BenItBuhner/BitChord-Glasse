@@ -170,7 +170,7 @@ private fun ManageRow(code: String?, onClick: () -> Unit) {
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.Rounded.Settings,
+                imageVector = com.music.bitchord.ui.icons.Symbols.of("gear", Icons.Rounded.Settings),
                 contentDescription = null,
                 tint = Color.White.copy(alpha = 0.7f),
                 modifier = Modifier.size(20.dp),
@@ -197,7 +197,7 @@ private fun ManageRow(code: String?, onClick: () -> Unit) {
             }
         }
         Icon(
-            imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+            imageVector = com.music.bitchord.ui.icons.Symbols.of("chevronRight", Icons.AutoMirrored.Rounded.KeyboardArrowRight),
             contentDescription = null,
             tint = Color.White.copy(alpha = 0.35f),
             modifier = Modifier.size(20.dp),

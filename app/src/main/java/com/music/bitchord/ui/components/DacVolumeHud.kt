@@ -314,8 +314,8 @@ fun DacVolumeHud(hazeState: HazeState) {
                     Icon(
                         imageVector = when {
                             current <= 0f -> Icons.AutoMirrored.Rounded.VolumeMute
-                            current < 0.5f -> Icons.AutoMirrored.Rounded.VolumeDown
-                            else -> Icons.AutoMirrored.Rounded.VolumeUp
+                            current < 0.5f -> com.music.bitchord.ui.icons.Symbols.of("volLow", Icons.AutoMirrored.Rounded.VolumeDown)
+                            else -> com.music.bitchord.ui.icons.Symbols.of("volHigh", Icons.AutoMirrored.Rounded.VolumeUp)
                         },
                         contentDescription = null,
                         // Dark where the white fill is behind it, as on iOS.

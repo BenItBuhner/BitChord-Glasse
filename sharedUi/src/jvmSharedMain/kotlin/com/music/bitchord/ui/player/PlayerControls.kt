@@ -712,7 +712,7 @@ internal fun TransportRow(
             // Same footprint as the play/pause target — a smaller box here
             // would shunt everything below it on every load.
             Box(Modifier.size(playTouch), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(
+                com.music.bitchord.ui.components.BusySpinner(
                     color = Color.White,
                     strokeWidth = 3.dp,
                     modifier = Modifier.size(if (compact) 30.dp else 38.dp),
@@ -763,7 +763,7 @@ internal fun VolumeRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            Icons.AutoMirrored.Rounded.VolumeDown,
+            com.music.bitchord.ui.icons.Symbols.of("volLow", Icons.AutoMirrored.Rounded.VolumeDown),
             contentDescription = null,
             tint = if (chrome) brightRowInk() else chromeWhite(0.5f),
             modifier = Modifier.size(20.dp).brightRowChrome(chrome),
@@ -783,7 +783,7 @@ internal fun VolumeRow(
         )
         Spacer(Modifier.width(10.dp))
         Icon(
-            Icons.AutoMirrored.Rounded.VolumeUp,
+            com.music.bitchord.ui.icons.Symbols.of("volHigh", Icons.AutoMirrored.Rounded.VolumeUp),
             contentDescription = null,
             tint = if (chrome) brightRowInk() else chromeWhite(0.5f),
             modifier = Modifier.size(20.dp).brightRowChrome(chrome),
@@ -1049,7 +1049,7 @@ internal fun CircleGlyph(
                 onOpen = { haptics.play(haptic); onClick() },
                 contentDescription = contentDescription,
                 modifier = modifier,
-                icon = icon.takeIf { it != Icons.Rounded.MoreHoriz },
+                icon = icon.takeIf { it != com.music.bitchord.ui.icons.Symbols.of("more", Icons.Rounded.MoreHoriz) },
                 tint = Color.White,
             ),
         )
@@ -1477,7 +1477,7 @@ private fun OutputPartyPill(
             // Person rather than Groups: the three-person glyph is drawn half
             // the height of Headphones and wider than the segment holding it,
             // so the two halves of the capsule never looked like a pair.
-            icon = Icons.Rounded.Person,
+            icon = com.music.bitchord.ui.icons.Symbols.of("person", Icons.Rounded.Person),
             iconSize = PILL_PARTY_SIZE,
             // The count is here and nowhere else: spoken, it is the whole
             // point of the control; drawn, it would cost the capsule its
@@ -1600,7 +1600,7 @@ private fun PillSegment(
             label = "pillSegmentLoading",
         ) { isLoading ->
             if (isLoading) {
-                CircularProgressIndicator(
+                com.music.bitchord.ui.components.BusySpinner(
                     modifier = Modifier.size(17.dp),
                     color = Color.White,
                     strokeWidth = 2.dp,

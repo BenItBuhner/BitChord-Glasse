@@ -1151,7 +1151,7 @@ private fun PartyActivityList(entries: List<PartyActivity>) {
 
 @Composable
 private fun Spinner(modifier: Modifier = Modifier.size(18.dp)) {
-    CircularProgressIndicator(
+    com.music.bitchord.ui.components.BusySpinner(
         strokeWidth = 2.dp,
         color = MaterialTheme.colorScheme.primary,
         modifier = modifier,

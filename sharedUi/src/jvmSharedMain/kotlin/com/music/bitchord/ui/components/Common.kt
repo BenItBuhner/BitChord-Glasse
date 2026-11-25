@@ -690,7 +690,7 @@ fun RowMoreButton(
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            Icons.Rounded.MoreVert,
+            com.music.bitchord.ui.icons.Symbols.of("more", Icons.Rounded.MoreVert),
             contentDescription = stringResource(Res.string.more),
             tint = tint,
             modifier = Modifier.size(iconSize),
@@ -1038,3 +1038,35 @@ fun PillTextField(
         )
     }
 }
+
+
+/**
+ * The spinner slot: with Liquid Glass on, the app fills it with Glassé's activity indicator (iOS's spokes).
+ * Null draws Material's ring.
+ */
+val LocalActivityIndicator = androidx.compose.runtime.staticCompositionLocalOf<
+    (@Composable (Modifier, androidx.compose.ui.graphics.Color) -> Unit)?,
+> { null }
+
+/**
+ * Something is loading. Every indeterminate spinner in the app goes through here so it is iOS's spokes under
+ * Liquid Glass and Material's ring otherwise; it takes the ring's parameters so call sites read the same.
+ */
+@Composable
+fun BusySpinner(
+    modifier: Modifier = Modifier,
+    color: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.Unspecified,
+    strokeWidth: androidx.compose.ui.unit.Dp = 4.dp,
+    trackColor: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.Transparent,
+    strokeCap: androidx.compose.ui.graphics.StrokeCap = androidx.compose.ui.graphics.StrokeCap.Round,
+) {
+    val glass = LocalActivityIndicator.current
+    if (glass != null) {
+        glass(modifier, color)
+    } else if (color != androidx.compose.ui.graphics.Color.Unspecified) {
+        androidx.compose.material3.CircularProgressIndicator(modifier = modifier, color = color, strokeWidth = strokeWidth, trackColor = trackColor, strokeCap = strokeCap)
+    } else {
+        androidx.compose.material3.CircularProgressIndicator(modifier = modifier, strokeWidth = strokeWidth, trackColor = trackColor, strokeCap = strokeCap)
+    }
+}
+

@@ -140,7 +140,7 @@ fun AccountChannelDialog(
                 )
                 if (loading && channels.isEmpty()) {
                     Spacer(Modifier.padding(top = 12.dp))
-                    CircularProgressIndicator(
+                    com.music.bitchord.ui.components.BusySpinner(
                         modifier = Modifier.size(22.dp),
                         strokeWidth = 2.dp,
                         color = MaterialTheme.colorScheme.primary,
@@ -214,7 +214,7 @@ private fun ChannelRow(channel: AccountChannel, selected: Boolean, onClick: () -
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    Icons.Rounded.Person,
+                    com.music.bitchord.ui.icons.Symbols.of("person", Icons.Rounded.Person),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(17.dp),
@@ -246,7 +246,7 @@ private fun ChannelRow(channel: AccountChannel, selected: Boolean, onClick: () -
         if (selected) {
             Spacer(Modifier.width(8.dp))
             Icon(
-                imageVector = Icons.Rounded.Check,
+                imageVector = com.music.bitchord.ui.icons.Symbols.of("check", Icons.Rounded.Check),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(19.dp),

@@ -218,7 +218,7 @@ fun PlaylistPickerSheet(
                             .height(120.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        CircularProgressIndicator(
+                        com.music.bitchord.ui.components.BusySpinner(
                             strokeWidth = 2.5.dp,
                             modifier = Modifier.size(26.dp),
                         )
@@ -296,7 +296,7 @@ private fun PlaylistSearchField(query: String, onQueryChange: (String) -> Unit) 
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            imageVector = Icons.Rounded.Search,
+            imageVector = com.music.bitchord.ui.icons.Symbols.of("search", Icons.Rounded.Search),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(18.dp),
@@ -323,7 +323,7 @@ private fun PlaylistSearchField(query: String, onQueryChange: (String) -> Unit) 
         if (query.isNotEmpty()) {
             IconButton(onClick = { onQueryChange("") }, modifier = Modifier.size(24.dp)) {
                 Icon(
-                    imageVector = Icons.Rounded.Close,
+                    imageVector = com.music.bitchord.ui.icons.Symbols.of("xmark", Icons.Rounded.Close),
                     contentDescription = stringResource(R.string.clear),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp),
@@ -520,7 +520,7 @@ private fun NewPlaylistForm(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        Icons.Rounded.Close,
+                        com.music.bitchord.ui.icons.Symbols.of("xmark", Icons.Rounded.Close),
                         contentDescription = stringResource(R.string.clear_name),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp),

@@ -404,7 +404,7 @@ private fun DownloadManagerRow(
         // finished one needs nothing at all.
         when {
             failed != null -> RowAction(Icons.Rounded.Refresh, stringResource(R.string.retry), onRetry)
-            !progress.settled -> RowAction(Icons.Rounded.Close, stringResource(R.string.cancel), onCancel)
+            !progress.settled -> RowAction(com.music.bitchord.ui.icons.Symbols.of("xmark", Icons.Rounded.Close), stringResource(R.string.cancel), onCancel)
             else -> Spacer(Modifier.width(36.dp))
         }
     }

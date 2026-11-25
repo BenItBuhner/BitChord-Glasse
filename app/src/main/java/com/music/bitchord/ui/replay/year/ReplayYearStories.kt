@@ -306,7 +306,7 @@ fun ReplayYearStories(
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.IosShare,
+                            imageVector = com.music.bitchord.ui.icons.Symbols.of("share", Icons.Rounded.IosShare),
                             contentDescription = stringResource(R.string.share_my_replay),
                             tint = Color.White,
                             modifier = Modifier.size(20.dp),
@@ -410,14 +410,14 @@ private fun YearChrome(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = if (muted) Icons.AutoMirrored.Rounded.VolumeOff else Icons.AutoMirrored.Rounded.VolumeUp,
+                imageVector = if (muted) Icons.AutoMirrored.Rounded.VolumeOff else com.music.bitchord.ui.icons.Symbols.of("volHigh", Icons.AutoMirrored.Rounded.VolumeUp),
                 contentDescription = stringResource(if (muted) R.string.replay_year_unmute else R.string.replay_year_mute),
                 tint = Color.White,
                 modifier = Modifier.size(30.dp).clip(CircleShape).clickable(onClick = onMute).padding(4.dp),
             )
             Spacer(Modifier.width(8.dp))
             Icon(
-                imageVector = Icons.Rounded.Close,
+                imageVector = com.music.bitchord.ui.icons.Symbols.of("xmark", Icons.Rounded.Close),
                 contentDescription = stringResource(R.string.close_replay),
                 tint = Color.White,
                 modifier = Modifier.size(30.dp).clip(CircleShape).clickable(onClick = onClose).padding(4.dp),

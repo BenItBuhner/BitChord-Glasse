@@ -124,7 +124,7 @@ fun libraryDeviceItems(downloadedReleases: List<SavedCollection>): List<ShelfIte
  * one of the folders.
  */
 fun deviceFolderIcon(browseId: String): ImageVector? = when (browseId) {
-    "local:downloads" -> Icons.Rounded.Download
+    "local:downloads" -> com.music.bitchord.ui.icons.Symbols.of("download", Icons.Rounded.Download)
     "local:all" -> Icons.Rounded.Folder
     CACHE_FOLDER_BROWSE_ID -> Icons.Rounded.Storage
     com.music.bitchord.data.webdav.WebDavConfig.BROWSE_ID -> Icons.Rounded.Cloud

@@ -4288,9 +4288,9 @@ fun NowPlayingScreen(
                                 CircleGlyph(
                                     icon = when {
                                         showRevertCue -> Icons.AutoMirrored.Rounded.Undo
-                                        lyricsShareGlyphVisible && lyricPicker.picking -> Icons.Rounded.Close
-                                        lyricsShareGlyphVisible -> Icons.Rounded.IosShare
-                                        else -> Icons.Rounded.MoreHoriz
+                                        lyricsShareGlyphVisible && lyricPicker.picking -> com.music.bitchord.ui.icons.Symbols.of("xmark", Icons.Rounded.Close)
+                                        lyricsShareGlyphVisible -> com.music.bitchord.ui.icons.Symbols.of("share", Icons.Rounded.IosShare)
+                                        else -> com.music.bitchord.ui.icons.Symbols.of("more", Icons.Rounded.MoreHoriz)
                                     },
                                     contentDescription = stringResource(
                                         when {

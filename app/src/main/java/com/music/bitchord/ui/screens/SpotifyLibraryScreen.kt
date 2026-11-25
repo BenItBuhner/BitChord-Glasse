@@ -123,7 +123,7 @@ fun SpotifyLibraryScreen(
             if (loading) {
                 item {
                     Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+                        com.music.bitchord.ui.components.BusySpinner()
                     }
                 }
             }

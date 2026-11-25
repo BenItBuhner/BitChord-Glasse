@@ -1139,7 +1139,7 @@ private fun ReleaseHeader(
                     // from disk, so it works offline. See [LocalFolder.onDownload].
                     onDownloadAll?.let {
                         CircleIconButton(
-                            icon = Icons.Rounded.Download,
+                            icon = com.music.bitchord.ui.icons.Symbols.of("download", Icons.Rounded.Download),
                             contentDescription = stringResource(R.string.download_all),
                             onClick = it,
                             size = RELEASE_SIDE_BUTTON,
@@ -1275,7 +1275,7 @@ private fun DetailSearchField(
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.Rounded.Close,
+                imageVector = com.music.bitchord.ui.icons.Symbols.of("xmark", Icons.Rounded.Close),
                 contentDescription = stringResource(
                     if (query.isEmpty()) R.string.close_search else R.string.clear_search,
                 ),
@@ -1657,7 +1657,7 @@ private fun ActionRow(
 
         if (subscription != null) {
             CircleIconButton(
-                icon = if (subscription.subscribed) Icons.Rounded.Star else Icons.Rounded.StarBorder,
+                icon = if (subscription.subscribed) com.music.bitchord.ui.icons.Symbols.of("starFill", Icons.Rounded.Star) else com.music.bitchord.ui.icons.Symbols.of("star", Icons.Rounded.StarBorder),
                 contentDescription = stringResource(
                     if (subscription.subscribed) R.string.unsubscribe else R.string.subscribe,
                 ),
@@ -1667,7 +1667,7 @@ private fun ActionRow(
             )
         } else {
             CircleIconButton(
-                icon = Icons.Rounded.StarBorder,
+                icon = com.music.bitchord.ui.icons.Symbols.of("star", Icons.Rounded.StarBorder),
                 contentDescription = stringResource(R.string.subscribe),
                 onClick = {},
                 size = ARTIST_SIDE_BUTTON,
@@ -1868,7 +1868,7 @@ private fun ArtistStatsRow(
         // screen without either wrapping into two.
         subscriberCountText?.let {
             StatChip(
-                icon = Icons.Rounded.Person,
+                icon = com.music.bitchord.ui.icons.Symbols.of("person", Icons.Rounded.Person),
                 text = stringResource(R.string.subscribers, it.substringBefore(' ')),
                 palette = palette,
             )
@@ -2211,7 +2211,7 @@ private fun SuggestedSongRow(
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                Icons.Rounded.Add,
+                com.music.bitchord.ui.icons.Symbols.of("plus", Icons.Rounded.Add),
                 contentDescription = stringResource(R.string.add_to_playlist),
                 tint = palette.accent,
                 modifier = Modifier.size(20.dp),
@@ -2356,7 +2356,7 @@ private fun TopReleaseCard(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = if (saved) Icons.Rounded.Check else Icons.Rounded.Add,
+                    imageVector = if (saved) com.music.bitchord.ui.icons.Symbols.of("check", Icons.Rounded.Check) else com.music.bitchord.ui.icons.Symbols.of("plus", Icons.Rounded.Add),
                     contentDescription = stringResource(
                         if (saved) R.string.remove_from_library else R.string.add_to_library,
                     ),
@@ -2517,11 +2517,11 @@ private fun DetailPage.headerLines(trackCount: Int, playtime: String? = null): P
 
 /** The glyph on a release page's placeholder sleeve: what kind of thing has no cover. */
 private fun DetailPage.placeholderIcon(): ImageVector = deviceFolderIcon(browseId) ?: when {
-    LocalGroups.isArtist(browseId) -> Icons.Rounded.Person
-    OfflinePlaylists.isLikedPage(browseId) -> Icons.Rounded.Favorite
+    LocalGroups.isArtist(browseId) -> com.music.bitchord.ui.icons.Symbols.of("person", Icons.Rounded.Person)
+    OfflinePlaylists.isLikedPage(browseId) -> com.music.bitchord.ui.icons.Symbols.of("heartFill", Icons.Rounded.Favorite)
     LocalGroups.isDirectory(browseId) -> Icons.Rounded.Folder
-    type == BrowseType.ALBUM -> Icons.Rounded.Album
-    type == BrowseType.PLAYLIST -> Icons.AutoMirrored.Rounded.QueueMusic
+    type == BrowseType.ALBUM -> com.music.bitchord.ui.icons.Symbols.of("album", Icons.Rounded.Album)
+    type == BrowseType.PLAYLIST -> com.music.bitchord.ui.icons.Symbols.of("queue", Icons.AutoMirrored.Rounded.QueueMusic)
     else -> BitChordIcons.MusicNote
 }
 

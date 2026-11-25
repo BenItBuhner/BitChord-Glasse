@@ -172,7 +172,7 @@ internal fun GlowingAvatar(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    Icons.Rounded.Person,
+                    com.music.bitchord.ui.icons.Symbols.of("person", Icons.Rounded.Person),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(size * 0.45f),
@@ -411,7 +411,7 @@ private fun PartySheetAvatar(url: String?, size: Dp = 40.dp) {
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                Icons.Rounded.Person,
+                com.music.bitchord.ui.icons.Symbols.of("person", Icons.Rounded.Person),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(size * 0.5f),
@@ -578,7 +578,7 @@ internal fun JoinConfirmSheet(
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    Icons.Rounded.Person,
+                    com.music.bitchord.ui.icons.Symbols.of("person", Icons.Rounded.Person),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(16.dp),
