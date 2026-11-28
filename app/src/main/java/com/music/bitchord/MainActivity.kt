@@ -879,6 +879,8 @@ private fun BitChordApp(
     // Separate from [songActions] so the menu can close behind it — the picker
     // is the next step, not a second sheet stacked on the first.
     var playlistTarget by remember { mutableStateOf<Song?>(null) }
+    // Song Info, asked for from a song's menu: the menu closes and the dialog stands on its own.
+    var songInfoTarget by remember { mutableStateOf<Song?>(null) }
     // The album whose complete track list is being added to selected playlists.
     var albumPlaylistTarget by remember { mutableStateOf<BrowseTarget?>(null) }
     var queuePlaylistSongs by remember { mutableStateOf<List<Song>?>(null) }
@@ -5048,6 +5050,10 @@ private fun BitChordApp(
                 } else {
                     null
                 },
+                onSongInfo = {
+                    songActions = null
+                    songInfoTarget = song
+                },
                 onLyricsOffset = if (fromPlayer && !fromQueue) {
                     {
                         songActions = null
@@ -5392,6 +5398,10 @@ private fun BitChordApp(
                     onDismiss = { finish(false) },
                 )
             }
+        }
+
+        songInfoTarget?.let { target ->
+            com.music.bitchord.ui.components.SongInfoDialog(target) { songInfoTarget = null }
         }
 
         // ---- Add to playlist / new playlist ----
