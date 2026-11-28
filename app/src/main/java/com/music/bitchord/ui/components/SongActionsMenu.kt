@@ -173,6 +173,12 @@ fun SongActionsMenu(
     /** Opens the timing control offered only by the main player's menu. */
     onLyricsOffset: (() -> Unit)? = null,
     /**
+     * Opens Song Info outside the menu. The caller closes the menu and shows
+     * the dialog itself, so the menu is not left open behind it. Null keeps
+     * the dialog inside the menu.
+     */
+    onSongInfo: (() -> Unit)? = null,
+    /**
      * Opens the Automix mix popup on the next transition. Null hides the row —
      * the player passes one only while Automix is on.
      */
@@ -381,7 +387,7 @@ fun SongActionsMenu(
             ) { onOpenArtist(id) }
         }
         ActionRow(SfIcons.Info, stringResource(R.string.song_info), accent = palette.accent) {
-            showingSongInfo = true
+            if (onSongInfo != null) onSongInfo() else showingSongInfo = true
         }
 
         // The player's own: about the track playing right now rather than
