@@ -485,6 +485,11 @@ class MainActivity : AppCompatActivity() {
             val appFont by AppSettings.appFont.collectAsStateWithLifecycle()
             val highPerformance by AppSettings.highPerformanceMode.collectAsStateWithLifecycle()
             val liquidGlassEnabled by AppSettings.liquidGlass.collectAsStateWithLifecycle()
+            // Glassé's version preset, set before anything below draws or starts a menu
+            val glassVersionId by AppSettings.glassVersion.collectAsStateWithLifecycle()
+            remember(glassVersionId) {
+                com.benitbuhner.liquidglass.GlassLooks.setVersion(com.music.bitchord.ui.screens.glassVersionOf(glassVersionId))
+            }
             val iosOverscrollFactory = rememberIosOverscrollFactory()
             val performanceRefreshRate by AppSettings.performanceRefreshRate.collectAsStateWithLifecycle()
             val composeView = LocalView.current

@@ -390,6 +390,7 @@
     <string name="disable_blend_effects">Disable blend effects</string>
     <string name="disable_blend_effects_subtitle">Shows player icons, text and dark menus in plain white instead of tinting them with the artwork</string>
     <string name="liquid_glass">Liquid Glass</string>
+    <string name="glass_version">Liquid Glass Version</string>
     <string name="liquid_glass_subtitle">Real refracting glass on the floating nav bar. Android 12+ only; uses more GPU.</string>
     <string name="progressive_blur">Progressive Blur</string>
     <string name="glass_performance">Better Performance for Glass</string>
