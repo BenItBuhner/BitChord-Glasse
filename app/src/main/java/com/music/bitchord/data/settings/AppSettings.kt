@@ -550,6 +550,14 @@ object AppSettings {
      * much for: the bar's rim, shadow, tint and motion all stay. A Liquid Glass
      * option, honoured only while [liquidGlass] is on.
      */
+    /**
+     * Which Liquid Glass the app shows: one of Glassé's version presets by its id
+     * ("wwdc25", "ios26.0", "ios26.1", "ios26.2", "ios26.4"). Each is the menu
+     * motion and material Apple shipped in that release. A Liquid Glass option,
+     * honoured only while [liquidGlass] is on.
+     */
+    val glassVersion = MutableStateFlow(DEFAULT_GLASS_VERSION)
+
     val glassPerformance = MutableStateFlow(false)
 
     /**
@@ -1140,6 +1148,7 @@ object AppSettings {
         disableBlendEffects.value = prefs.getBoolean(KEY_DISABLE_BLEND_EFFECTS, false)
         liquidGlass.value = prefs.getBoolean(KEY_LIQUID_GLASS, true)
         glassPerformance.value = prefs.getBoolean(KEY_GLASS_PERFORMANCE, false)
+        glassVersion.value = prefs.getString(KEY_GLASS_VERSION, DEFAULT_GLASS_VERSION) ?: DEFAULT_GLASS_VERSION
         progressiveBlur.value = prefs.getBoolean(KEY_PROGRESSIVE_BLUR, false)
         lyricsBlur.value = prefs.getBoolean(KEY_LYRICS_BLUR, true)
         lyricsOffsetMs.value = prefs.getInt(KEY_LYRICS_OFFSET_MS, 0)
@@ -1663,6 +1672,11 @@ object AppSettings {
         val editor = prefs.edit().putBoolean(KEY_REDUCE_BLUR, value)
         if (value) editor.putBoolean(KEY_HIGH_PERFORMANCE_MODE, false)
         editor.apply()
+    }
+
+    fun setGlassVersion(id: String) {
+        glassVersion.value = id
+        prefs.edit().putString(KEY_GLASS_VERSION, id).apply()
     }
 
     fun setLiquidGlass(value: Boolean) {
@@ -2484,6 +2498,8 @@ object AppSettings {
     private const val KEY_REDUCE_BLUR = "reduce_dynamic_blur"
     private const val KEY_DISABLE_BLEND_EFFECTS = "disable_blend_effects"
     private const val KEY_LIQUID_GLASS = "liquid_glass"
+    private const val KEY_GLASS_VERSION = "glass_version"
+    private const val DEFAULT_GLASS_VERSION = "wwdc25"
     private const val KEY_GLASS_PERFORMANCE = "glass_performance"
     private const val KEY_PROGRESSIVE_BLUR = "progressive_blur"
     private const val KEY_LYRICS_BLUR = "lyrics_blur"

@@ -259,6 +259,7 @@ fun SettingsScreen(
     val disableBlendEffects by AppSettings.disableBlendEffects.collectAsStateWithLifecycle()
     val liquidGlass by AppSettings.liquidGlass.collectAsStateWithLifecycle()
     val glassPerformance by AppSettings.glassPerformance.collectAsStateWithLifecycle()
+    val glassVersion by AppSettings.glassVersion.collectAsStateWithLifecycle()
     val progressiveBlur by AppSettings.progressiveBlur.collectAsStateWithLifecycle()
     val liquidGlassSupported = isGlassSupported()
     val lyricsBlur by AppSettings.lyricsBlur.collectAsStateWithLifecycle()
@@ -1228,6 +1229,16 @@ fun SettingsScreen(
                         title = progressiveBlurTitle,
                         checked = progressiveBlur,
                         onCheckedChange = AppSettings::setProgressiveBlur,
+                    )
+                }
+                // Glassé's own version presets: the menu motion and material of each iOS release.
+                val glassVersionTitle = stringResource(R.string.glass_version)
+                row(glassVersionTitle, "glass", "version", "ios", "wwdc", "motion", "animation") {
+                    SettingsRow(
+                        icon = SfIcons.Sliders,
+                        title = glassVersionTitle,
+                        value = glassVersionOf(glassVersion).label.substringBefore(" ("),
+                        onClick = { onOpenChoice(SettingsChoiceKind.GLASS_VERSION) },
                     )
                 }
             }
@@ -3152,6 +3163,7 @@ enum class SettingsChoiceKind(@param:StringRes val title: Int) {
     AUTOMIX_PERFORMANCE(R.string.automix_performance),
     BIT_PERFECT(R.string.bit_perfect_output),
     FONT(R.string.font),
+    GLASS_VERSION(R.string.glass_version),
 }
 
 /** The main page's list of categories: a glyph and a name each, and a chevron into it. */
@@ -3271,6 +3283,19 @@ fun SettingsChoicePage(
                 }
             }
 
+            SettingsChoiceKind.GLASS_VERSION -> {
+                val selected by AppSettings.glassVersion.collectAsStateWithLifecycle()
+                ChoiceGroup(
+                    options = GLASS_VERSIONS,
+                    selected = glassVersionOf(selected),
+                    label = { it.label },
+                    footer = null,
+                ) { version ->
+                    AppSettings.setGlassVersion(version.id)
+                    onChosen()
+                }
+            }
+
             SettingsChoiceKind.FONT -> {
                 val selected by AppSettings.appFont.collectAsStateWithLifecycle()
                 ChoiceGroup(
@@ -3358,3 +3383,19 @@ internal fun <T> ChoiceGroup(
         }
     }
 }
+
+/**
+ * The Liquid Glass versions on offer, straight from Glassé's presets. iOS 27 and
+ * the rolling "26.x" are left out until they are finished.
+ */
+internal val GLASS_VERSIONS: List<com.benitbuhner.liquidglass.GlassVersion> = listOf(
+    com.benitbuhner.liquidglass.GlassVersion.WWDC25,
+    com.benitbuhner.liquidglass.GlassVersion.IOS26_0,
+    com.benitbuhner.liquidglass.GlassVersion.IOS26_1,
+    com.benitbuhner.liquidglass.GlassVersion.IOS26_2,
+    com.benitbuhner.liquidglass.GlassVersion.IOS26_4,
+)
+
+/** The offered version a stored id names; anything else falls back to the default. */
+internal fun glassVersionOf(id: String): com.benitbuhner.liquidglass.GlassVersion =
+    GLASS_VERSIONS.firstOrNull { it.id == id } ?: GLASS_VERSIONS.first()
